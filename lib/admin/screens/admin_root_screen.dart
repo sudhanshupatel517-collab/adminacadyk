@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/admin_auth_provider.dart';
 import '../widgets/admin_scaffold.dart';
+import 'admin_login_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_users_screen.dart';
 import 'admin_content_screen.dart';
@@ -26,6 +29,12 @@ class _AdminRootScreenState extends State<AdminRootScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AdminAuthProvider>();
+
+    if (!auth.isAuthenticated) {
+      return const AdminLoginScreen();
+    }
+
     return AdminScaffold(
       currentRoute: _currentRoute,
       onNavigate: (route) {

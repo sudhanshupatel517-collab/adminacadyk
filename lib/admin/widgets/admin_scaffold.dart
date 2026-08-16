@@ -7,13 +7,10 @@ import '../../common/providers/theme_provider.dart';
 class AdminNavItem {
   final String label;
   final IconData icon;
+  final IconData activeIcon;
   final String routeKey;
 
-  const AdminNavItem({
-    required this.label,
-    required this.icon,
-    required this.routeKey,
-  });
+  const AdminNavItem({required this.label, required this.icon, required this.activeIcon, required this.routeKey});
 }
 
 class AdminScaffold extends StatefulWidget {
@@ -29,12 +26,12 @@ class AdminScaffold extends StatefulWidget {
   });
 
   static const List<AdminNavItem> navItems = [
-    AdminNavItem(label: 'Dashboard', icon: Icons.dashboard_outlined, routeKey: 'dashboard'),
-    AdminNavItem(label: 'User Directory', icon: Icons.people_outline_rounded, routeKey: 'users'),
-    AdminNavItem(label: 'Content Moderation', icon: Icons.shield_outlined, routeKey: 'content'),
-    AdminNavItem(label: 'Analytics & Reports', icon: Icons.insights_rounded, routeKey: 'analytics'),
-    AdminNavItem(label: 'Audit Log', icon: Icons.history_rounded, routeKey: 'activity'),
-    AdminNavItem(label: 'System Settings', icon: Icons.tune_rounded, routeKey: 'settings'),
+    AdminNavItem(label: 'Dashboard', icon: Icons.grid_view_outlined, activeIcon: Icons.grid_view_rounded, routeKey: 'dashboard'),
+    AdminNavItem(label: 'Users', icon: Icons.people_alt_outlined, activeIcon: Icons.people_alt_rounded, routeKey: 'users'),
+    AdminNavItem(label: 'Content', icon: Icons.description_outlined, activeIcon: Icons.description_rounded, routeKey: 'content'),
+    AdminNavItem(label: 'Analytics', icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart_rounded, routeKey: 'analytics'),
+    AdminNavItem(label: 'Activity', icon: Icons.schedule_outlined, activeIcon: Icons.schedule_rounded, routeKey: 'activity'),
+    AdminNavItem(label: 'Settings', icon: Icons.tune_outlined, activeIcon: Icons.tune_rounded, routeKey: 'settings'),
   ];
 
   @override
@@ -44,211 +41,188 @@ class AdminScaffold extends StatefulWidget {
 class _AdminScaffoldState extends State<AdminScaffold> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  String _getPageTitle() {
-    switch (widget.currentRoute) {
-      case 'dashboard':
-        return 'System Overview';
-      case 'users':
-        return 'User Management';
-      case 'content':
-        return 'Content Moderation Queue';
-      case 'analytics':
-        return 'Analytics & Institutional Metrics';
-      case 'activity':
-        return 'System Audit Log';
-      case 'settings':
-        return 'System Configuration';
-      default:
-        return 'Admin Console';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isMobile = AdminBreakpoints.isMobile(context);
     final isTablet = AdminBreakpoints.isTablet(context);
 
-    final sidebarBg = isDark ? const Color(0xFF0D1117) : const Color(0xFFF9FAFB);
-    final contentBg = isDark ? const Color(0xFF090D13) : const Color(0xFFF3F4F6);
-    final borderColor = isDark ? const Color(0xFF21262D) : const Color(0xFFE5E7EB);
+    final sidebarBg = isDark ? const Color(0xFF0C0C0C) : const Color(0xFFFFFFFF);
+    final contentBg = isDark ? const Color(0xFF111111) : const Color(0xFFF7F7F8);
 
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: contentBg,
-      appBar: isMobile ? _buildMobileAppBar(isDark, borderColor) : null,
-      drawer: isMobile ? _buildProfileDrawer(isDark, borderColor) : null,
+      appBar: isMobile ? _buildMobileAppBar(isDark) : null,
+      drawer: isMobile ? _buildProfileDrawer(isDark) : null,
       body: Row(
         children: [
-          if (!isMobile) _buildSidebar(isDark, isTablet, sidebarBg, borderColor),
+          if (!isMobile) _buildSidebar(isDark, isTablet, sidebarBg),
           Expanded(
             child: Column(
               children: [
-                if (!isMobile) _buildDesktopTopBar(isDark, borderColor),
+                if (!isMobile) _buildDesktopTopBar(isDark),
                 Expanded(child: widget.body),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: isMobile ? _buildBottomNav(isDark, borderColor) : null,
+      bottomNavigationBar: isMobile ? _buildBottomNav(isDark) : null,
     );
   }
 
-  PreferredSizeWidget _buildMobileAppBar(bool isDark, Color borderColor) {
+  // ======== MOBILE APP BAR ========
+  // Left: Profile avatar icon -> opens profile drawer
+  // Center: Logo + "Admin"
+  // Right: Theme toggle ONLY on desktop top bar (removed from here)
+  PreferredSizeWidget _buildMobileAppBar(bool isDark) {
     final admin = context.watch<AdminAuthProvider>().currentAdmin;
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF0D1117) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0C0C0C) : Colors.white,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
+      automaticallyImplyLeading: false,
+      leading: GestureDetector(
+        onTap: () => _scaffoldKey.currentState?.openDrawer(),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: CircleAvatar(
+            radius: 16,
+            backgroundColor: isDark ? const Color(0xFF252525) : const Color(0xFFF0F0F0),
+            child: Text(
+              admin?.name.isNotEmpty == true ? admin!.name[0].toUpperCase() : 'A',
+              style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+              ),
+            ),
+          ),
+        ),
+      ),
+      title: _buildLogo(28),
+      centerTitle: true,
+      actions: [
+        _buildThemeToggle(isDark),
+        const SizedBox(width: 8),
+      ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(color: borderColor, height: 1),
+        child: Container(height: 1, color: isDark ? const Color(0xFF222222) : const Color(0xFFEEEEEE)),
       ),
-      leading: IconButton(
-        icon: CircleAvatar(
-          radius: 14,
-          backgroundColor: const Color(0xFF0A66C2),
-          child: Text(
-            admin?.name.isNotEmpty == true ? admin!.name[0].toUpperCase() : 'A',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
-          ),
-        ),
-        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-      ),
-      centerTitle: true,
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Image.asset(
-              'assets/images/lagacy.png',
-              width: 20,
-              height: 20,
-              errorBuilder: (_, __, ___) => const Icon(Icons.school_rounded, size: 20, color: Color(0xFF0A66C2)),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            _getPageTitle(),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark ? const Color(0xFFF0F6FC) : const Color(0xFF111827),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: Icon(
-            isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-            size: 18,
-            color: isDark ? const Color(0xFF8B949E) : const Color(0xFF4B5563),
-          ),
-          onPressed: () {
-            final tp = context.read<ThemeProvider>();
-            tp.setThemeMode(isDark ? ThemeMode.light : ThemeMode.dark);
-          },
-        ),
-      ],
     );
   }
 
-  Widget _buildProfileDrawer(bool isDark, Color borderColor) {
-    final auth = context.read<AdminAuthProvider>();
-    final admin = auth.currentAdmin;
-    final textPrimary = isDark ? const Color(0xFFF0F6FC) : const Color(0xFF111827);
-    final textSecondary = isDark ? const Color(0xFF8B949E) : const Color(0xFF6B7280);
+  // ======== PROFILE DRAWER (MOBILE - endDrawer) ========
+  // Shows ONLY admin profile info + actions (NO nav items - those are in bottom bar)
+  Widget _buildProfileDrawer(bool isDark) {
+    final admin = context.watch<AdminAuthProvider>().currentAdmin;
+    final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEEEEEE);
 
     return Drawer(
-      backgroundColor: isDark ? const Color(0xFF0D1117) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0C0C0C) : Colors.white,
+      width: 300,
+      shape: const RoundedRectangleBorder(),
       child: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
+            // Profile Header
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+              child: Column(
                 children: [
                   CircleAvatar(
-                    radius: 20,
-                    backgroundColor: const Color(0xFF0A66C2),
+                    radius: 36,
+                    backgroundColor: isDark ? const Color(0xFF252525) : const Color(0xFFF0F0F0),
                     child: Text(
                       admin?.name.isNotEmpty == true ? admin!.name[0].toUpperCase() : 'A',
-                      style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 16),
+                      style: TextStyle(
+                        fontSize: 26, fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 14),
+                  Text(admin?.name ?? 'Admin', style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  )),
+                  const SizedBox(height: 4),
+                  Text(admin?.email ?? '', style: TextStyle(
+                    fontSize: 13, color: isDark ? const Color(0xFF888888) : const Color(0xFF999999),
+                  )),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E3A2F) : const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      admin?.role ?? 'VIEWER',
+                      style: TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5,
+                        color: isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(height: 1, color: borderColor),
+
+            // Profile Actions
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                children: [
+                  _buildDrawerItem(isDark, Icons.person_outline_rounded, 'My Profile', () {
+                    Navigator.pop(context);
+                  }),
+                  _buildDrawerItem(isDark, Icons.tune_rounded, 'Settings', () {
+                    Navigator.pop(context);
+                    widget.onNavigate('settings');
+                  }),
+                  _buildDrawerItem(isDark, Icons.security_rounded, 'Security', () {
+                    Navigator.pop(context);
+                  }),
+                  _buildDrawerItem(isDark, Icons.notifications_outlined, 'Notifications', () {
+                    Navigator.pop(context);
+                  }),
+                  _buildDrawerItem(isDark, Icons.help_outline_rounded, 'Help & Support', () {
+                    Navigator.pop(context);
+                  }),
+                  _buildDrawerItem(isDark, Icons.info_outline_rounded, 'About', () {
+                    Navigator.pop(context);
+                  }),
+                ],
+              ),
+            ),
+
+            // Sign Out
+            Container(height: 1, color: borderColor),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => _handleLogout(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    child: Row(
                       children: [
-                        Text(admin?.name ?? 'Administrator', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textPrimary)),
-                        Text(admin?.email ?? 'admin@acadyk.edu', style: TextStyle(fontSize: 12, color: textSecondary)),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0A66C2).withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            admin?.role ?? 'SUPER_ADMIN',
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF0A66C2)),
-                          ),
-                        ),
+                        Icon(Icons.logout_rounded, size: 20, color: isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828)),
+                        const SizedBox(width: 12),
+                        Text('Sign Out', style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600,
+                          color: isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828),
+                        )),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-            Divider(color: borderColor, height: 1),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                children: [
-                  ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.tune_rounded, size: 18),
-                    title: const Text('System Settings', style: TextStyle(fontSize: 13)),
-                    onTap: () {
-                      Navigator.pop(context);
-                      widget.onNavigate('settings');
-                    },
-                  ),
-                  ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.history_rounded, size: 18),
-                    title: const Text('Audit Log', style: TextStyle(fontSize: 13)),
-                    onTap: () {
-                      Navigator.pop(context);
-                      widget.onNavigate('activity');
-                    },
-                  ),
-                  ListTile(
-                    dense: true,
-                    leading: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined, size: 18),
-                    title: Text(isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode', style: const TextStyle(fontSize: 13)),
-                    onTap: () {
-                      final tp = context.read<ThemeProvider>();
-                      tp.setThemeMode(isDark ? ThemeMode.light : ThemeMode.dark);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Divider(color: borderColor, height: 1),
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFDC2626)),
-              title: const Text('Sign Out', style: TextStyle(fontSize: 13, color: Color(0xFFDC2626), fontWeight: FontWeight.w600)),
-              onTap: () {
-                Navigator.pop(context);
-                auth.logout();
-              },
             ),
           ],
         ),
@@ -256,157 +230,125 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  Widget _buildSidebar(bool isDark, bool isTablet, Color bg, Color borderColor) {
-    final auth = context.watch<AdminAuthProvider>();
-    final admin = auth.currentAdmin;
-    final width = isTablet ? 64.0 : 240.0;
-    final textPrimary = isDark ? const Color(0xFFF0F6FC) : const Color(0xFF111827);
-    final textSecondary = isDark ? const Color(0xFF8B949E) : const Color(0xFF6B7280);
+  Widget _buildDrawerItem(bool isDark, IconData icon, String label, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555)),
+                const SizedBox(width: 12),
+                Text(label, style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w500,
+                  color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
+                )),
+                const Spacer(),
+                Icon(Icons.chevron_right_rounded, size: 18, color: isDark ? const Color(0xFF444444) : const Color(0xFFCCCCCC)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ======== DESKTOP SIDEBAR ========
+  Widget _buildSidebar(bool isDark, bool isCompact, Color bgColor) {
+    final width = isCompact ? 68.0 : 260.0;
+    final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE8E8E8);
 
     return Container(
       width: width,
       decoration: BoxDecoration(
-        color: bg,
-        border: Border(right: BorderSide(color: borderColor)),
+        color: bgColor,
+        border: Border(right: BorderSide(color: borderColor, width: 1)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo & Organization Header
+          // Logo
           Container(
-            height: 56,
-            padding: EdgeInsets.symmetric(horizontal: isTablet ? 12 : 16),
-            alignment: Alignment.centerLeft,
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: borderColor)),
+            height: 64,
+            padding: EdgeInsets.symmetric(horizontal: isCompact ? 0 : 22),
+            alignment: isCompact ? Alignment.center : Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: isCompact ? MainAxisSize.min : MainAxisSize.max,
+              children: [
+                _buildLogo(isCompact ? 26 : 28),
+                if (!isCompact) ...[
+                  const SizedBox(width: 10),
+                  Text('Acadyk', style: TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 19, letterSpacing: -0.5,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  )),
+                ],
+              ],
             ),
-            child: isTablet
-                ? Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.asset('assets/images/lagacy.png', width: 24, height: 24, errorBuilder: (_, __, ___) => const Icon(Icons.school_rounded, color: Color(0xFF0A66C2))),
-                    ),
-                  )
-                : Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: Image.asset('assets/images/lagacy.png', width: 22, height: 22, errorBuilder: (_, __, ___) => const Icon(Icons.school_rounded, color: Color(0xFF0A66C2))),
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Acadyk Admin', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary, letterSpacing: -0.2)),
-                          Text('Campus Administration', style: TextStyle(fontSize: 11, color: textSecondary)),
-                        ],
-                      ),
-                    ],
-                  ),
           ),
-
-          // Navigation Links
+          Container(height: 1, color: borderColor),
+          if (!isCompact)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 20, 22, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('MENU', style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w600,
+                  color: isDark ? const Color(0xFF555555) : const Color(0xFFAAAAAA),
+                  letterSpacing: 1.2,
+                )),
+              ),
+            ),
+          // Nav items
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 12, vertical: 4),
               children: AdminScaffold.navItems.map((item) {
                 final isActive = widget.currentRoute == item.routeKey;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 2),
-                  child: InkWell(
-                    onTap: () => widget.onNavigate(item.routeKey),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      height: 38,
-                      padding: EdgeInsets.symmetric(horizontal: isTablet ? 0 : 12),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? (isDark ? const Color(0xFF21262D) : const Color(0xFFE5E7EB))
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(6),
-                        border: isActive && !isTablet
-                            ? Border(left: BorderSide(color: const Color(0xFF0A66C2), width: 3))
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: isTablet ? MainAxisAlignment.center : MainAxisAlignment.start,
-                        children: [
-                          Icon(
-                            item.icon,
-                            size: 17,
-                            color: isActive
-                                ? (isDark ? Colors.white : const Color(0xFF0A66C2))
-                                : textSecondary,
-                          ),
-                          if (!isTablet) ...[
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                item.label,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                                  color: isActive ? textPrimary : textSecondary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
+                  child: isCompact
+                      ? _buildCompactNavItem(item, isActive, isDark)
+                      : _buildFullNavItem(item, isActive, isDark),
                 );
               }).toList(),
             ),
           ),
-
-          // Bottom User Profile & Sign Out
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: borderColor)),
-            ),
-            child: isTablet
-                ? IconButton(
-                    icon: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFDC2626)),
-                    tooltip: 'Sign Out',
-                    onPressed: () => auth.logout(),
+          // Sign out at bottom
+          Container(height: 1, color: borderColor),
+          Padding(
+            padding: EdgeInsets.all(isCompact ? 8 : 12),
+            child: isCompact
+                ? Tooltip(
+                    message: 'Sign Out',
+                    child: IconButton(
+                      icon: Icon(Icons.logout_rounded, size: 20, color: isDark ? const Color(0xFF666666) : const Color(0xFF999999)),
+                      onPressed: () => _handleLogout(),
+                    ),
                   )
-                : Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundColor: const Color(0xFF0A66C2),
-                        child: Text(
-                          admin?.name.isNotEmpty == true ? admin!.name[0].toUpperCase() : 'A',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                : Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => _handleLogout(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        child: Row(
                           children: [
-                            Text(
-                              admin?.name ?? 'Admin',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary),
-                            ),
-                            Text(
-                              admin?.role ?? 'SUPER_ADMIN',
-                              style: TextStyle(fontSize: 10, color: textSecondary),
-                            ),
+                            Icon(Icons.logout_rounded, size: 18, color: isDark ? const Color(0xFF666666) : const Color(0xFF999999)),
+                            const SizedBox(width: 12),
+                            Text('Sign Out', style: TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w500,
+                              color: isDark ? const Color(0xFF666666) : const Color(0xFF999999),
+                            )),
                           ],
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.logout_rounded, size: 16, color: textSecondary),
-                        tooltip: 'Sign Out',
-                        onPressed: () => auth.logout(),
-                      ),
-                    ],
+                    ),
                   ),
           ),
         ],
@@ -414,80 +356,175 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  Widget _buildDesktopTopBar(bool isDark, Color borderColor) {
-    final textPrimary = isDark ? const Color(0xFFF0F6FC) : const Color(0xFF111827);
-    final textSecondary = isDark ? const Color(0xFF8B949E) : const Color(0xFF6B7280);
-
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0D1117) : Colors.white,
-        border: Border(bottom: BorderSide(color: borderColor)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+  Widget _buildFullNavItem(AdminNavItem item, bool isActive, bool isDark) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => widget.onNavigate(item.routeKey),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive
+                ? (isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0))
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
             children: [
-              Text('Acadyk', style: TextStyle(fontSize: 13, color: textSecondary, fontWeight: FontWeight.w500)),
-              const SizedBox(width: 6),
-              Icon(Icons.chevron_right_rounded, size: 16, color: textSecondary),
-              const SizedBox(width: 6),
-              Text(
-                _getPageTitle(),
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary),
+              Icon(
+                isActive ? item.activeIcon : item.icon, size: 20,
+                color: isActive
+                    ? (isDark ? Colors.white : const Color(0xFF1A1A1A))
+                    : (isDark ? const Color(0xFF707070) : const Color(0xFF888888)),
               ),
+              const SizedBox(width: 12),
+              Text(item.label, style: TextStyle(
+                fontSize: 14,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                color: isActive
+                    ? (isDark ? Colors.white : const Color(0xFF1A1A1A))
+                    : (isDark ? const Color(0xFF999999) : const Color(0xFF666666)),
+              )),
+              if (isActive) ...[
+                const Spacer(),
+                Container(width: 4, height: 4, decoration: BoxDecoration(
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A), shape: BoxShape.circle,
+                )),
+              ],
             ],
           ),
-          Row(
-            children: [
-              // Theme Toggle Button
-              IconButton(
-                icon: Icon(
-                  isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                  size: 18,
-                  color: textSecondary,
-                ),
-                tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-                onPressed: () {
-                  final tp = context.read<ThemeProvider>();
-                  tp.setThemeMode(isDark ? ThemeMode.light : ThemeMode.dark);
-                },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactNavItem(AdminNavItem item, bool isActive, bool isDark) {
+    return Tooltip(
+      message: item.label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => widget.onNavigate(item.routeKey),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: isActive
+                  ? (isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0))
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(child: Icon(
+              isActive ? item.activeIcon : item.icon, size: 22,
+              color: isActive
+                  ? (isDark ? Colors.white : const Color(0xFF1A1A1A))
+                  : (isDark ? const Color(0xFF707070) : const Color(0xFF888888)),
+            )),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ======== DESKTOP TOP BAR ========
+  // Single theme toggle here + profile
+  Widget _buildDesktopTopBar(bool isDark) {
+    final admin = context.watch<AdminAuthProvider>().currentAdmin;
+    final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE8E8E8);
+
+    return Container(
+      height: 64,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0C0C0C) : Colors.white,
+        border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Row(
+        children: [
+          Text(_routeToTitle(widget.currentRoute), style: TextStyle(
+            fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+          )),
+          const SizedBox(width: 12),
+          Text(_routeToSubtitle(widget.currentRoute), style: TextStyle(
+            fontSize: 13, color: isDark ? const Color(0xFF666666) : const Color(0xFF999999),
+          )),
+          const Spacer(),
+          // SINGLE theme toggle
+          _buildThemeToggle(isDark),
+          const SizedBox(width: 16),
+          // Profile
+          GestureDetector(
+            onTap: () => _showProfileMenu(isDark, admin),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0)),
               ),
-              const SizedBox(width: 8),
-              // Status Indicator
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF059669).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFF059669).withOpacity(0.2)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF059669),
-                      ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0),
+                    child: Text(
+                      admin?.name.isNotEmpty == true ? admin!.name[0].toUpperCase() : 'A',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                     ),
-                    const SizedBox(width: 6),
-                    const Text('Operational', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF059669))),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(admin?.name ?? 'Admin', style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                      )),
+                      Text(admin?.role ?? 'VIEWER', style: TextStyle(
+                        fontSize: 10, fontWeight: FontWeight.w500, color: isDark ? const Color(0xFF666666) : const Color(0xFF999999),
+                      )),
+                    ],
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.expand_more_rounded, size: 18, color: isDark ? const Color(0xFF666666) : const Color(0xFF999999)),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBottomNav(bool isDark, Color borderColor) {
-    final bottomNavItems = [
+  // ======== THEME TOGGLE (single compact button) ========
+  Widget _buildThemeToggle(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: IconButton(
+        icon: Icon(
+          isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+          size: 18, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
+        ),
+        onPressed: () => _toggleTheme(),
+        tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        padding: EdgeInsets.zero,
+      ),
+    );
+  }
+
+  // ======== BOTTOM NAV (MOBILE) ========
+  // 5 items: Dashboard, Users, Content, Analytics, Settings
+  Widget _buildBottomNav(bool isDark) {
+    final bottomItems = [
       AdminScaffold.navItems[0], // Dashboard
       AdminScaffold.navItems[1], // Users
       AdminScaffold.navItems[2], // Content
@@ -495,28 +532,173 @@ class _AdminScaffoldState extends State<AdminScaffold> {
       AdminScaffold.navItems[4], // Activity
     ];
 
-    int currentIndex = bottomNavItems.indexWhere((item) => item.routeKey == widget.currentRoute);
-    if (currentIndex == -1) currentIndex = 0;
+    int currentIndex = 0;
+    for (int i = 0; i < bottomItems.length; i++) {
+      if (bottomItems[i].routeKey == widget.currentRoute) {
+        currentIndex = i;
+        break;
+      }
+    }
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0D1117) : Colors.white,
-        border: Border(top: BorderSide(color: borderColor)),
+        color: isDark ? const Color(0xFF0C0C0C) : Colors.white,
+        border: Border(top: BorderSide(color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE8E8E8), width: 1)),
       ),
-      child: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: (i) => widget.onNavigate(bottomNavItems[i].routeKey),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        height: 58,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: bottomNavItems.map((item) {
-          return NavigationDestination(
-            icon: Icon(item.icon, size: 18),
-            label: item.label.split(' ')[0], // Compact label for mobile
-          );
-        }).toList(),
+      child: SafeArea(
+        child: SizedBox(
+          height: 60,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(bottomItems.length, (index) {
+              final item = bottomItems[index];
+              final isActive = item.routeKey == widget.currentRoute;
+              return Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => widget.onNavigate(item.routeKey),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isActive ? item.activeIcon : item.icon, size: 22,
+                          color: isActive
+                              ? (isDark ? Colors.white : const Color(0xFF1A1A1A))
+                              : (isDark ? const Color(0xFF555555) : const Color(0xFFAAAAAA)),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(item.label, style: TextStyle(
+                          fontSize: 10, letterSpacing: 0.2,
+                          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                          color: isActive
+                              ? (isDark ? Colors.white : const Color(0xFF1A1A1A))
+                              : (isDark ? const Color(0xFF555555) : const Color(0xFFAAAAAA)),
+                        )),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
       ),
+    );
+  }
+
+  // ======== HELPERS ========
+  Widget _buildLogo(double size) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.22),
+      child: Image.asset(
+        'assets/images/lagacy.png',
+        width: size, height: size, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: size, height: size,
+          decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(size * 0.22)),
+          child: Center(child: Text('A', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: size * 0.45))),
+        ),
+      ),
+    );
+  }
+
+  void _toggleTheme() {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    themeProvider.setThemeMode(isDark ? ThemeMode.light : ThemeMode.dark);
+  }
+
+  void _showProfileMenu(bool isDark, dynamic admin) {
+    showMenu(
+      context: context,
+      position: const RelativeRect.fromLTRB(1000, 64, 28, 0),
+      color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      items: <PopupMenuEntry<dynamic>>[
+        PopupMenuItem<dynamic>(
+          enabled: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(admin?.name ?? 'Admin', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+              Text(admin?.email ?? '', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF888888) : const Color(0xFF999999))),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem<dynamic>(
+          onTap: () {},
+          child: Row(children: [
+            Icon(Icons.person_outline_rounded, size: 18, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555)),
+            const SizedBox(width: 10),
+            Text('Profile', style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555))),
+          ]),
+        ),
+        PopupMenuItem<dynamic>(
+          onTap: () => _handleLogout(),
+          child: Row(children: [
+            Icon(Icons.logout_rounded, size: 18, color: isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828)),
+            const SizedBox(width: 10),
+            Text('Sign Out', style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828))),
+          ]),
+        ),
+      ],
+    );
+  }
+
+  String _routeToTitle(String route) {
+    switch (route) {
+      case 'dashboard': return 'Dashboard';
+      case 'users': return 'User Management';
+      case 'content': return 'Content Moderation';
+      case 'analytics': return 'Analytics';
+      case 'activity': return 'Activity Log';
+      case 'settings': return 'Settings';
+      default: return 'Dashboard';
+    }
+  }
+
+  String _routeToSubtitle(String route) {
+    switch (route) {
+      case 'dashboard': return 'Overview & insights';
+      case 'users': return 'Manage platform users';
+      case 'content': return 'Review & moderate posts';
+      case 'analytics': return 'Growth & engagement data';
+      case 'activity': return 'Audit trail & history';
+      case 'settings': return 'Platform configuration';
+      default: return '';
+    }
+  }
+
+  void _handleLogout() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Sign Out', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF1A1A1A), fontWeight: FontWeight.w700, fontSize: 18)),
+          content: Text('You will be returned to the login screen.', style: TextStyle(color: isDark ? const Color(0xFF999999) : const Color(0xFF666666), fontSize: 14)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF999999) : const Color(0xFF666666))),
+            ),
+            ElevatedButton(
+              onPressed: () { Navigator.pop(ctx); context.read<AdminAuthProvider>().logout(); },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                foregroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            ),
+          ],
+        );
+      },
     );
   }
 }

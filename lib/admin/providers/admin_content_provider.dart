@@ -12,8 +12,6 @@ class AdminContentProvider extends ChangeNotifier {
   List<ManagedContent> get content => _content;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  String get searchQuery => _searchQuery;
-  String get statusFilter => _statusFilter;
 
   Future<void> loadContent() async {
     _isLoading = true;
@@ -46,17 +44,5 @@ class AdminContentProvider extends ChangeNotifier {
   Future<void> updateContentStatus(String id, String newStatus) async {
     await AdminService.updateContentStatus(id, newStatus);
     await loadContent();
-  }
-
-  Future<bool> deleteContent(String id) async {
-    try {
-      await AdminService.deleteContent(id);
-      await loadContent();
-      return true;
-    } catch (e) {
-      _error = 'Failed to delete content: $e';
-      notifyListeners();
-      return false;
-    }
   }
 }

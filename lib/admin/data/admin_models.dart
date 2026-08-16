@@ -1,4 +1,4 @@
-// Acadyk Admin Panel — Data Models
+// Admin Panel Data Models
 // Architecture: UI -> Provider -> Service -> API/Mock
 
 class AdminAccount {
@@ -72,15 +72,15 @@ class DashboardStats {
 
 class ManagedUser {
   final String id;
-  String fullName;
-  String email;
-  String role;
-  String status; // active, suspended, banned
-  String? department;
+  final String fullName;
+  final String email;
+  final String role;
+  final String status; // active, suspended, banned
+  final String? department;
   final String? avatarUrl;
   final DateTime joinedAt;
   final DateTime lastActive;
-  int postsCount;
+  final int postsCount;
 
   ManagedUser({
     required this.id,
@@ -114,17 +114,13 @@ class ManagedUser {
     );
   }
 
-  ManagedUser copyWith({String? fullName, String? email, String? status, String? role, String? department}) {
+  ManagedUser copyWith({String? status, String? role}) {
     return ManagedUser(
-      id: id,
-      fullName: fullName ?? this.fullName,
-      email: email ?? this.email,
+      id: id, fullName: fullName, email: email,
       role: role ?? this.role,
       status: status ?? this.status,
-      department: department ?? this.department,
-      avatarUrl: avatarUrl,
-      joinedAt: joinedAt,
-      lastActive: lastActive,
+      department: department, avatarUrl: avatarUrl,
+      joinedAt: joinedAt, lastActive: lastActive,
       postsCount: postsCount,
     );
   }
@@ -136,7 +132,7 @@ class ManagedContent {
   final String authorEmail;
   final String content;
   final String postType;
-  String status; // published, flagged, removed
+  final String status; // published, flagged, removed
   final int likeCount;
   final int commentCount;
   final int reportCount;
@@ -193,7 +189,6 @@ class ActivityLogEntry {
   final String performedBy;
   final String target;
   final DateTime timestamp;
-  final String category; // user, content, settings, system
 
   ActivityLogEntry({
     required this.id,
@@ -201,7 +196,6 @@ class ActivityLogEntry {
     required this.performedBy,
     required this.target,
     required this.timestamp,
-    this.category = 'system',
   });
 }
 
@@ -229,10 +223,15 @@ class AppSettingsModel {
   });
 
   AppSettingsModel copyWith({
-    String? appName, String? tagline, String? contactEmail,
-    bool? maintenanceMode, bool? enableAIRecommendations,
-    bool? enableRealtimeChat, bool? enableStartups,
-    bool? enableLeaderboard, bool? enableEvents,
+    String? appName,
+    String? tagline,
+    String? contactEmail,
+    bool? maintenanceMode,
+    bool? enableAIRecommendations,
+    bool? enableRealtimeChat,
+    bool? enableStartups,
+    bool? enableLeaderboard,
+    bool? enableEvents,
   }) {
     return AppSettingsModel(
       appName: appName ?? this.appName,
