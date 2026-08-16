@@ -15,6 +15,10 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const AdminRootScreen(initialTab: 'dashboard'),
     ),
     GoRoute(
+      path: '/login',
+      builder: (context, state) => const AdminRootScreen(initialTab: 'dashboard'),
+    ),
+    GoRoute(
       path: RouteNames.admin,
       builder: (context, state) => const AdminRootScreen(initialTab: 'dashboard'),
     ),
