@@ -1,0 +1,12 @@
+{
+  "name": "acadyk-admin",
+  "version": "1.0.0",
+  "description": "Acadyk Native Flutter Admin Panel",
+  "scripts": {
+    "build": "bash build.sh",
+    "serve": "npx serve -s build/web -l 3000"
+  },
+  "keywords": ["flutter", "admin", "dashboard", "acadyk"],
+  "author": "Sudhanshu Patel",
+  "license": "ISC"
+}
