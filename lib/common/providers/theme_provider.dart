@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.light;
   
   // Theme Color Presets
   int _lightPresetIndex = 0; // 0: Default Blue, 1: Amber, 2: Crimson, 3: Emerald, 4: Midnight, 5: Purple, 6: Dark Grey
