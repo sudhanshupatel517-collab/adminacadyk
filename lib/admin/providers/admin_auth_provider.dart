@@ -1,55 +1,27 @@
 import 'package:flutter/material.dart';
 import '../data/admin_models.dart';
-import '../data/admin_service.dart';
 import '../data/admin_mock_data.dart';
 
 class AdminAuthProvider extends ChangeNotifier {
-  AdminAccount? _currentAdmin = AdminMockData.adminAccounts[0]; // Bypass login by default
-  bool _isLoading = false;
-  String? _errorMessage;
+  AdminAccount? _currentAdmin = AdminMockData.adminAccounts[0];
 
-  AdminAccount? get currentAdmin => _currentAdmin;
-  bool get isAuthenticated => _currentAdmin != null;
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
-  bool get isSuperAdmin => _currentAdmin?.isSuperAdmin ?? false;
-  bool get isEditor => _currentAdmin?.isEditor ?? false;
+  AdminAccount? get currentAdmin => _currentAdmin ?? AdminMockData.adminAccounts[0];
+  bool get isAuthenticated => true;
+  bool get isLoading => false;
+  String? get errorMessage => null;
+  bool get isSuperAdmin => true;
+  bool get isEditor => true;
 
   Future<bool> login(String email, String password) async {
-    _isLoading = true;
-    _errorMessage = null;
+    _currentAdmin = AdminMockData.adminAccounts[0];
     notifyListeners();
-
-    try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      final account = AdminService.authenticate(email, password);
-      if (account != null) {
-        _currentAdmin = account;
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      } else {
-        _errorMessage = 'Invalid email or password.';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      _errorMessage = 'Login failed: $e';
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
+    return true;
   }
 
   void logout() {
-    _currentAdmin = null;
-    _errorMessage = null;
+    // Kept for UI callback
     notifyListeners();
   }
 
-  void clearError() {
-    _errorMessage = null;
-    notifyListeners();
-  }
+  void clearError() {}
 }
