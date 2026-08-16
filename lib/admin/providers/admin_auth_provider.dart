@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../data/admin_models.dart';
 import '../data/admin_service.dart';
+import '../data/admin_mock_data.dart';
 
 class AdminAuthProvider extends ChangeNotifier {
-  AdminAccount? _currentAdmin;
+  AdminAccount? _currentAdmin = AdminMockData.adminAccounts[0]; // Bypass login by default
   bool _isLoading = false;
   String? _errorMessage;
 

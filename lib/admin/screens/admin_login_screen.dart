@@ -1,3 +1,4 @@
+import '../../common/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/admin_auth_provider.dart';
@@ -29,6 +30,26 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+              size: 20,
+              color: isDark ? const Color(0xFFF0F6FC) : const Color(0xFF111827),
+            ),
+            tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+            onPressed: () {
+              final tp = context.read<ThemeProvider>();
+              tp.setThemeMode(isDark ? ThemeMode.light : ThemeMode.dark);
+            },
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
       backgroundColor: isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF7F7F8),
       body: Center(
         child: SingleChildScrollView(
