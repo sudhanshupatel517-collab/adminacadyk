@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/admin_content_provider.dart';
-import '../providers/admin_auth_provider.dart';
 import '../data/admin_models.dart';
-import '../widgets/admin_search_bar.dart';
-import '../widgets/admin_responsive.dart';
+import '../providers/admin_content_provider.dart';
 
 class AdminContentScreen extends StatefulWidget {
   const AdminContentScreen({super.key});
@@ -14,7 +11,7 @@ class AdminContentScreen extends StatefulWidget {
 }
 
 class _AdminContentScreenState extends State<AdminContentScreen> {
-  String _statusFilter = '';
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -25,393 +22,428 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<AdminContentProvider>();
-    final isEditor = context.watch<AdminAuthProvider>().isEditor;
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
-
-    final filtered = provider.content.where((c) {
-      if (_statusFilter.isEmpty) return true;
-      return c.status == _statusFilter;
-    }).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search + Filters
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isMobile = constraints.maxWidth < AdminBreakpoints.mobile;
-              if (isMobile) {
-                return Column(
-                  children: [
-                    AdminSearchBar(
-                      hint: 'Search content...',
-                      onChanged: (q) => provider.setSearch(q),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildFilterRow(isDark),
-                  ],
-                );
-              }
-              return Row(
-                children: [
-                  Expanded(child: AdminSearchBar(
-                    hint: 'Search content...',
-                    onChanged: (q) => provider.setSearch(q),
-                  )),
-                  const SizedBox(width: 16),
-                  _buildFilterRow(isDark),
-                ],
-              );
-            },
+          // Header
+          Text(
+            'Content Moderation',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Review flagged posts, manage academic announcements, and enforce community standards',
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? const Color(0xFF888888) : const Color(0xFF666666),
+            ),
           ),
           const SizedBox(height: 20),
 
+          // Filters Bar
+          _buildFiltersBar(isDark, provider),
+          const SizedBox(height: 16),
+
           // Content List
-          if (provider.isLoading)
-            Center(child: Padding(
-              padding: const EdgeInsets.all(60),
-              child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-            ))
-          else if (filtered.isEmpty)
-            Center(child: Padding(
-              padding: const EdgeInsets.all(60),
-              child: Column(
-                children: [
-                  Icon(Icons.inbox_outlined, size: 48, color: isDark ? const Color(0xFF333333) : const Color(0xFFCCCCCC)),
-                  const SizedBox(height: 12),
-                  Text('No content found.', style: TextStyle(color: isDark ? const Color(0xFF888888) : const Color(0xFF888888))),
-                ],
+          if (provider.state == ContentLoadState.loading)
+            Padding(
+              padding: const EdgeInsets.all(40),
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                ),
               ),
-            ))
+            )
+          else if (provider.content.isEmpty)
+            _buildEmptyState(isDark)
           else
-            LayoutBuilder(
-              builder: (context, constraints) {
-                // Desktop: Table layout
-                if (constraints.maxWidth >= AdminBreakpoints.mobile) {
-                  return _buildDesktopTable(filtered, isDark, isEditor, cardBg, borderColor);
-                }
-                // Mobile: Card layout
-                return _buildMobileCards(filtered, isDark, isEditor);
-              },
-            ),
+            _buildContentTable(context, isDark, provider),
         ],
       ),
     );
   }
 
-  Widget _buildFilterRow(bool isDark) {
-    final filters = [
-      {'key': '', 'label': 'All'},
-      {'key': 'published', 'label': 'Published'},
-      {'key': 'flagged', 'label': 'Flagged'},
-      {'key': 'removed', 'label': 'Removed'},
-    ];
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: filters.map((f) {
-        final isActive = _statusFilter == f['key'];
-        return Padding(
-          padding: const EdgeInsets.only(left: 6),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () => setState(() => _statusFilter = f['key']!),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? (isDark ? Colors.white : const Color(0xFF1A1A1A))
-                      : (isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5)),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isActive ? Colors.transparent : (isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0))),
-                ),
-                child: Text(f['label']!, style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600,
-                  color: isActive
-                      ? (isDark ? const Color(0xFF1A1A1A) : Colors.white)
-                      : (isDark ? const Color(0xFF999999) : const Color(0xFF666666)),
-                )),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  // â”€â”€ DESKTOP TABLE â”€â”€
-  Widget _buildDesktopTable(List<ManagedContent> items, bool isDark, bool isEditor, Color cardBg, Color borderColor) {
-    final headerBg = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF9F9F9);
-    final headerText = isDark ? const Color(0xFF888888) : const Color(0xFF888888);
+  Widget _buildFiltersBar(bool isDark, AdminContentProvider provider) {
+    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
 
     return Container(
-      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor),
       ),
-      child: Column(
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            decoration: BoxDecoration(
-              color: headerBg,
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
-            ),
-            child: Row(
-              children: [
-                Expanded(flex: 2, child: Text('Author', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-                Expanded(flex: 4, child: Text('Content', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-                Expanded(flex: 1, child: Text('Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-                Expanded(flex: 1, child: Text('Status', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-                Expanded(flex: 1, child: Center(child: Text('Engagement', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3)))),
-                if (isEditor) Expanded(flex: 2, child: Align(alignment: Alignment.centerRight, child: Text('Actions', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3)))),
-              ],
+          SizedBox(
+            width: 280,
+            height: 40,
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) => provider.setSearch(val),
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+              decoration: InputDecoration(
+                hintText: 'Search content or author...',
+                hintStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF555555) : const Color(0xFFAAAAAA)),
+                prefixIcon: Icon(Icons.search_rounded, size: 18, color: isDark ? const Color(0xFF666666) : const Color(0xFF999999)),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 16),
+                        onPressed: () {
+                          _searchController.clear();
+                          provider.setSearch('');
+                        },
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF7F7F8),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderColor)),
+              ),
             ),
           ),
-          Container(height: 1, color: borderColor),
-          ...items.map((item) {
-            final statusColor = item.status == 'published'
-                ? const Color(0xFF00BA7C)
-                : item.status == 'flagged'
-                    ? const Color(0xFFF59E0B)
-                    : const Color(0xFFEF5350);
-
-            return Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Row(
-                    children: [
-                      Expanded(flex: 2, child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundColor: isDark ? const Color(0xFF252525) : const Color(0xFFF0F0F0),
-                            child: Text(item.authorName[0].toUpperCase(), style: TextStyle(
-                              fontSize: 11, fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                            )),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(item.authorName, style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                          ), overflow: TextOverflow.ellipsis)),
-                        ],
-                      )),
-                      Expanded(flex: 4, child: Text(
-                        item.content.length > 80 ? '${item.content.substring(0, 80)}...' : item.content,
-                        style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF999999) : const Color(0xFF666666)),
-                        overflow: TextOverflow.ellipsis, maxLines: 2,
-                      )),
-                      Expanded(flex: 1, child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(item.postType, style: TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-                        ), overflow: TextOverflow.ellipsis),
-                      )),
-                      Expanded(flex: 1, child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: isDark ? 0.15 : 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(item.status.toUpperCase(), style: TextStyle(
-                          fontSize: 10, fontWeight: FontWeight.w700, color: statusColor,
-                        ), overflow: TextOverflow.ellipsis),
-                      )),
-                      Expanded(flex: 1, child: Center(child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.favorite_rounded, size: 12, color: isDark ? const Color(0xFF555555) : const Color(0xFFCCCCCC)),
-                          const SizedBox(width: 3),
-                          Text('${item.likeCount}', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555))),
-                          if (item.reportCount > 0) ...[
-                            const SizedBox(width: 8),
-                            Icon(Icons.flag_rounded, size: 12, color: const Color(0xFFEF5350)),
-                            const SizedBox(width: 3),
-                            Text('${item.reportCount}', style: const TextStyle(fontSize: 12, color: Color(0xFFEF5350))),
-                          ],
-                        ],
-                      ))),
-                      if (isEditor)
-                        Expanded(flex: 2, child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            if (item.status == 'flagged')
-                              _buildActionBtn(isDark, Icons.check_circle_outline_rounded, 'Approve', () {
-                                context.read<AdminContentProvider>().updateContentStatus(item.id, 'published');
-                              }),
-                            if (item.status == 'flagged') const SizedBox(width: 6),
-                            if (item.status != 'removed')
-                              _buildActionBtn(isDark, Icons.delete_outline_rounded, 'Remove', () {
-                                context.read<AdminContentProvider>().updateContentStatus(item.id, 'removed');
-                              }, danger: true),
-                          ],
-                        )),
-                    ],
-                  ),
-                ),
-                Container(height: 1, color: borderColor),
-              ],
-            );
-          }),
+          DropdownButtonHideUnderline(
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF7F7F8),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: borderColor),
+              ),
+              child: DropdownButton<String>(
+                value: provider.statusFilter ?? 'all',
+                dropdownColor: cardBg,
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                items: const [
+                  DropdownMenuItem(value: 'all', child: Text('All Content')),
+                  DropdownMenuItem(value: 'flagged', child: Text('Flagged / Reported')),
+                  DropdownMenuItem(value: 'published', child: Text('Published')),
+                  DropdownMenuItem(value: 'removed', child: Text('Removed')),
+                ],
+                onChanged: (val) => provider.setStatusFilter(val),
+              ),
+            ),
+          ),
+          Text(
+            '${provider.content.length} entries',
+            style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF888888) : const Color(0xFF666666)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildActionBtn(bool isDark, IconData icon, String label, VoidCallback onTap, {bool danger = false}) {
-    final color = danger ? const Color(0xFFEF5350) : const Color(0xFF00BA7C);
-    return Tooltip(
-      message: label,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0)),
+  Widget _buildEmptyState(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(48),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF161616) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.check_circle_outline_rounded, size: 48, color: isDark ? const Color(0xFF00BA7C) : const Color(0xFF2E7D32)),
+          const SizedBox(height: 12),
+          Text(
+            'Moderation Queue Clear',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+          ),
+          const SizedBox(height: 4),
+          Text('No content matches your filter criteria.', style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF666666) : const Color(0xFF888888))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentTable(BuildContext context, bool isDark, AdminContentProvider provider) {
+    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            horizontalMargin: 20,
+            columnSpacing: 24,
+            headingRowColor: WidgetStateProperty.all(
+              isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF7F7F8),
             ),
-            child: Icon(icon, size: 16, color: color),
+            columns: [
+              _buildHeaderCell('Author', isDark),
+              _buildHeaderCell('Preview', isDark),
+              _buildHeaderCell('Type', isDark),
+              _buildHeaderCell('Status', isDark),
+              _buildHeaderCell('Reports', isDark),
+              _buildHeaderCell('Actions', isDark),
+            ],
+            rows: provider.content.map((item) {
+              return DataRow(
+                cells: [
+                  DataCell(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(item.authorName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+                        Text(item.authorEmail, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF666666) : const Color(0xFF888888))),
+                      ],
+                    ),
+                  ),
+                  DataCell(
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: Text(
+                        item.content,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF444444)),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF222222) : const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        item.postType.toUpperCase(),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555)),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: item.status == 'published'
+                            ? const Color(0xFF00BA7C).withValues(alpha: 0.12)
+                            : (item.status == 'flagged'
+                                ? const Color(0xFFEF5350).withValues(alpha: 0.12)
+                                : const Color(0xFF888888).withValues(alpha: 0.12)),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        item.status.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: item.status == 'published'
+                              ? const Color(0xFF00BA7C)
+                              : (item.status == 'flagged' ? const Color(0xFFEF5350) : const Color(0xFF888888)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      '${item.reportCount}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: item.reportCount > 0 ? const Color(0xFFEF5350) : (isDark ? const Color(0xFF666666) : const Color(0xFF888888)),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // View Full Post
+                        IconButton(
+                          icon: const Icon(Icons.visibility_outlined, size: 16),
+                          tooltip: 'Review Full Post',
+                          onPressed: () => _showPostModal(context, item, isDark),
+                        ),
+                        // Quick Approve
+                        if (item.status != 'published')
+                          IconButton(
+                            icon: const Icon(Icons.check_circle_outline_rounded, size: 16, color: Color(0xFF00BA7C)),
+                            tooltip: 'Approve & Publish',
+                            onPressed: () async {
+                              final ok = await provider.updateStatus(item.id, 'published');
+                              if (context.mounted && ok) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Content approved and published.')),
+                                );
+                              }
+                            },
+                          ),
+                        // Quick Flag
+                        if (item.status != 'flagged')
+                          IconButton(
+                            icon: const Icon(Icons.flag_outlined, size: 16, color: Color(0xFFF59E0B)),
+                            tooltip: 'Flag Content',
+                            onPressed: () async {
+                              final ok = await provider.updateStatus(item.id, 'flagged');
+                              if (context.mounted && ok) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Content flagged for review.')),
+                                );
+                              }
+                            },
+                          ),
+                        // Delete
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFFEF5350)),
+                          tooltip: 'Delete Post',
+                          onPressed: () => _showDeleteModal(context, item, isDark),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
           ),
         ),
       ),
     );
   }
 
-  // â”€â”€ MOBILE CARDS â”€â”€
-  Widget _buildMobileCards(List<ManagedContent> items, bool isDark, bool isEditor) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final statusColor = item.status == 'published'
-            ? const Color(0xFF00BA7C)
-            : item.status == 'flagged'
-                ? const Color(0xFFF59E0B)
-                : const Color(0xFFEF5350);
+  DataColumn _buildHeaderCell(String label, bool isDark) {
+    return DataColumn(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: isDark ? const Color(0xFF888888) : const Color(0xFF666666),
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF161616) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8)),
-          ),
+  void _showPostModal(BuildContext context, ManagedContent item, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('Post Inspection (${item.id})', style: TextStyle(fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+        content: SizedBox(
+          width: 500,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 16,
-                    backgroundColor: isDark ? const Color(0xFF252525) : const Color(0xFFF0F0F0),
-                    child: Text(item.authorName[0].toUpperCase(), style: TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                    )),
+                    radius: 14,
+                    backgroundColor: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0),
+                    child: Text(item.authorName[0], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item.authorName, style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                      )),
-                      Text(item.postType, style: TextStyle(
-                        fontSize: 11, color: isDark ? const Color(0xFF666666) : const Color(0xFF999999),
-                      )),
-                    ],
-                  )),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(item.status.toUpperCase(), style: TextStyle(
-                      fontSize: 10, fontWeight: FontWeight.w700, color: statusColor,
-                    )),
-                  ),
+                  Text(item.authorName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const SizedBox(width: 6),
+                  Text('(${item.authorEmail})', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF666666) : const Color(0xFF888888))),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(item.content, style: TextStyle(
-                fontSize: 13, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-              ), maxLines: 3, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.favorite_rounded, size: 14, color: isDark ? const Color(0xFF555555) : const Color(0xFFCCCCCC)),
-                  const SizedBox(width: 4),
-                  Text('${item.likeCount}', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF888888) : const Color(0xFF888888))),
-                  const SizedBox(width: 12),
-                  Icon(Icons.comment_rounded, size: 14, color: isDark ? const Color(0xFF555555) : const Color(0xFFCCCCCC)),
-                  const SizedBox(width: 4),
-                  Text('${item.commentCount}', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF888888) : const Color(0xFF888888))),
-                  if (item.reportCount > 0) ...[
-                    const SizedBox(width: 12),
-                    const Icon(Icons.flag_rounded, size: 14, color: Color(0xFFEF5350)),
-                    const SizedBox(width: 4),
-                    Text('${item.reportCount}', style: const TextStyle(fontSize: 12, color: Color(0xFFEF5350))),
-                  ],
-                ],
-              ),
-              if (isEditor && item.status != 'removed') ...[
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    if (item.status == 'flagged')
-                      Expanded(child: OutlinedButton(
-                        onPressed: () => context.read<AdminContentProvider>().updateContentStatus(item.id, 'published'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF00BA7C),
-                          side: const BorderSide(color: Color(0xFF00BA7C)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        child: const Text('Approve', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                      )),
-                    if (item.status == 'flagged') const SizedBox(width: 8),
-                    Expanded(child: OutlinedButton(
-                      onPressed: () => context.read<AdminContentProvider>().updateContentStatus(item.id, 'removed'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFEF5350),
-                        side: const BorderSide(color: Color(0xFFEF5350)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                      child: const Text('Remove', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    )),
-                  ],
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF141414) : const Color(0xFFF7F7F8),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
+                child: Text(
+                  item.content,
+                  style: TextStyle(fontSize: 14, height: 1.4, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('❤️ ${item.likeCount} Likes', style: const TextStyle(fontSize: 12)),
+                  Text('💬 ${item.commentCount} Comments', style: const TextStyle(fontSize: 12)),
+                  Text('🚩 ${item.reportCount} Reports', style: const TextStyle(fontSize: 12, color: Color(0xFFEF5350))),
+                ],
+              ),
             ],
           ),
-        );
-      },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+          if (item.status != 'published')
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00BA7C), foregroundColor: Colors.white),
+              onPressed: () async {
+                await context.read<AdminContentProvider>().updateStatus(item.id, 'published');
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Approve & Publish'),
+            ),
+          if (item.status != 'removed')
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF5350), foregroundColor: Colors.white),
+              onPressed: () async {
+                await context.read<AdminContentProvider>().updateStatus(item.id, 'removed');
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Remove Post'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteModal(BuildContext context, ManagedContent item, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Delete Post', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFFEF5350))),
+        content: const Text('Are you sure you want to permanently delete this post?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF5350), foregroundColor: Colors.white),
+            onPressed: () async {
+              await context.read<AdminContentProvider>().deleteContent(item.id);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
     );
   }
 }

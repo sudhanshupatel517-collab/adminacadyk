@@ -1,4 +1,4 @@
-// Admin Panel Data Models
+// Acadyk Admin Panel — Data Models
 // Architecture: UI -> Provider -> Service -> API/Mock
 
 class AdminAccount {
@@ -72,15 +72,15 @@ class DashboardStats {
 
 class ManagedUser {
   final String id;
-  final String fullName;
-  final String email;
-  final String role;
-  final String status; // active, suspended, banned
-  final String? department;
+  String fullName;
+  String email;
+  String role;
+  String status; // active, suspended, banned
+  String? department;
   final String? avatarUrl;
   final DateTime joinedAt;
   final DateTime lastActive;
-  final int postsCount;
+  int postsCount;
 
   ManagedUser({
     required this.id,
@@ -114,13 +114,17 @@ class ManagedUser {
     );
   }
 
-  ManagedUser copyWith({String? status, String? role}) {
+  ManagedUser copyWith({String? fullName, String? email, String? status, String? role, String? department}) {
     return ManagedUser(
-      id: id, fullName: fullName, email: email,
+      id: id,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
       role: role ?? this.role,
       status: status ?? this.status,
-      department: department, avatarUrl: avatarUrl,
-      joinedAt: joinedAt, lastActive: lastActive,
+      department: department ?? this.department,
+      avatarUrl: avatarUrl,
+      joinedAt: joinedAt,
+      lastActive: lastActive,
       postsCount: postsCount,
     );
   }
@@ -132,7 +136,7 @@ class ManagedContent {
   final String authorEmail;
   final String content;
   final String postType;
-  final String status; // published, flagged, removed
+  String status; // published, flagged, removed
   final int likeCount;
   final int commentCount;
   final int reportCount;
@@ -171,13 +175,18 @@ class ManagedContent {
     );
   }
 
-  ManagedContent copyWith({String? status}) {
+  ManagedContent copyWith({String? status, int? reportCount}) {
     return ManagedContent(
-      id: id, authorName: authorName, authorEmail: authorEmail,
-      content: content, postType: postType,
+      id: id,
+      authorName: authorName,
+      authorEmail: authorEmail,
+      content: content,
+      postType: postType,
       status: status ?? this.status,
-      likeCount: likeCount, commentCount: commentCount,
-      reportCount: reportCount, createdAt: createdAt,
+      likeCount: likeCount,
+      commentCount: commentCount,
+      reportCount: reportCount ?? this.reportCount,
+      createdAt: createdAt,
       imageUrl: imageUrl,
     );
   }
@@ -189,6 +198,7 @@ class ActivityLogEntry {
   final String performedBy;
   final String target;
   final DateTime timestamp;
+  final String category; // user, content, settings, system
 
   ActivityLogEntry({
     required this.id,
@@ -196,6 +206,7 @@ class ActivityLogEntry {
     required this.performedBy,
     required this.target,
     required this.timestamp,
+    this.category = 'system',
   });
 }
 

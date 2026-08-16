@@ -2,33 +2,38 @@ import 'package:flutter/material.dart';
 import '../data/admin_models.dart';
 import '../data/admin_service.dart';
 
+enum ContentLoadState { initial, loading, loaded, error }
+
 class AdminContentProvider extends ChangeNotifier {
   List<ManagedContent> _content = [];
-  bool _isLoading = false;
+  ContentLoadState _state = ContentLoadState.initial;
   String? _error;
   String _searchQuery = '';
-  String _statusFilter = '';
+  String? _statusFilter;
 
   List<ManagedContent> get content => _content;
-  bool get isLoading => _isLoading;
+  ContentLoadState get state => _state;
   String? get error => _error;
+  String get searchQuery => _searchQuery;
+  String? get statusFilter => _statusFilter;
 
   Future<void> loadContent() async {
-    _isLoading = true;
+    _state = ContentLoadState.loading;
     _error = null;
     notifyListeners();
 
     try {
       _content = await AdminService.getContent(
-        search: _searchQuery.isNotEmpty ? _searchQuery : null,
-        statusFilter: _statusFilter.isNotEmpty ? _statusFilter : null,
+        search: _searchQuery.isEmpty ? null : _searchQuery,
+        statusFilter: _statusFilter,
       );
-      _isLoading = false;
+      _state = ContentLoadState.loaded;
+      notifyListeners();
     } catch (e) {
+      _state = ContentLoadState.error;
       _error = 'Failed to load content: $e';
-      _isLoading = false;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   void setSearch(String query) {
@@ -36,13 +41,32 @@ class AdminContentProvider extends ChangeNotifier {
     loadContent();
   }
 
-  void setStatusFilter(String filter) {
-    _statusFilter = filter;
+  void setStatusFilter(String? status) {
+    _statusFilter = (status == null || status.isEmpty || status == 'all') ? null : status;
     loadContent();
   }
 
-  Future<void> updateContentStatus(String id, String newStatus) async {
-    await AdminService.updateContentStatus(id, newStatus);
-    await loadContent();
+  Future<bool> updateStatus(String contentId, String newStatus) async {
+    try {
+      await AdminService.updateContentStatus(contentId, newStatus);
+      await loadContent();
+      return true;
+    } catch (e) {
+      _error = 'Failed to update content: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteContent(String contentId) async {
+    try {
+      await AdminService.deleteContent(contentId);
+      await loadContent();
+      return true;
+    } catch (e) {
+      _error = 'Failed to delete content: $e';
+      notifyListeners();
+      return false;
+    }
   }
 }

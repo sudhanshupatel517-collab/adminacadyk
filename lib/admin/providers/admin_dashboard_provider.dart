@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import '../data/admin_models.dart';
 import '../data/admin_service.dart';
 
-enum LoadState { idle, loading, loaded, error }
+enum LoadState { initial, loading, loaded, error }
 
 class AdminDashboardProvider extends ChangeNotifier {
   DashboardStats? _stats;
   List<ActivityLogEntry> _recentActivity = [];
-  LoadState _state = LoadState.idle;
+  LoadState _state = LoadState.initial;
   String? _error;
 
   DashboardStats? get stats => _stats;
@@ -21,17 +21,15 @@ class AdminDashboardProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final results = await Future.wait([
-        AdminService.getDashboardStats(),
-        AdminService.getActivityLog(),
-      ]);
-      _stats = results[0] as DashboardStats;
-      _recentActivity = (results[1] as List<ActivityLogEntry>).take(5).toList();
+      _stats = await AdminService.getDashboardStats();
+      final allLogs = await AdminService.getActivityLog();
+      _recentActivity = allLogs.take(5).toList();
       _state = LoadState.loaded;
+      notifyListeners();
     } catch (e) {
-      _error = 'Failed to load dashboard: $e';
       _state = LoadState.error;
+      _error = 'Failed to load dashboard: $e';
+      notifyListeners();
     }
-    notifyListeners();
   }
 }
