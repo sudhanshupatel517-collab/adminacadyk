@@ -74,21 +74,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               _buildStatGrid(stats, isDark, constraints.maxWidth),
               const SizedBox(height: 24),
 
-              // Content Area
+              // Content Area — Perfectly Leveled
               if (isDesktop)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 3, child: _buildRecentActivity(isDark, provider)),
-                    const SizedBox(width: 20),
-                    Expanded(flex: 2, child: Column(
-                      children: [
-                        _buildPlatformOverview(isDark, stats),
-                        const SizedBox(height: 20),
-                        _buildQuickActions(isDark),
-                      ],
-                    )),
-                  ],
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: _buildRecentActivity(isDark, provider),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            _buildPlatformOverview(isDark, stats),
+                            const SizedBox(height: 20),
+                            Expanded(
+                              child: _buildQuickActions(isDark),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 )
               else
                 Column(
@@ -212,90 +222,115 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           if (provider.recentActivity.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
+            Expanded(
               child: Center(child: Text('No recent activity', style: TextStyle(
                 color: isDark ? const Color(0xFF555555) : const Color(0xFFAAAAAA), fontSize: 13,
               ))),
             )
           else
-            ...provider.recentActivity.map((entry) {
-              IconData actionIcon;
-              Color actionColor;
-              switch (entry.action.toLowerCase()) {
-                case 'user suspended':
-                  actionIcon = Icons.block_rounded;
-                  actionColor = const Color(0xFFF59E0B);
-                  break;
-                case 'content flagged':
-                  actionIcon = Icons.flag_rounded;
-                  actionColor = const Color(0xFFEF5350);
-                  break;
-                case 'content removed':
-                  actionIcon = Icons.delete_rounded;
-                  actionColor = const Color(0xFFEF5350);
-                  break;
-                case 'new admin added':
-                  actionIcon = Icons.person_add_rounded;
-                  actionColor = const Color(0xFF00BA7C);
-                  break;
-                default:
-                  actionIcon = Icons.info_outline_rounded;
-                  actionColor = isDark ? const Color(0xFF888888) : const Color(0xFF999999);
-              }
-
-              return InkWell(
-                onTap: () {
-                  if (entry.action.toLowerCase().contains('user')) {
-                    widget.onNavigate?.call('users');
-                  } else if (entry.action.toLowerCase().contains('content')) {
-                    widget.onNavigate?.call('content');
-                  } else if (entry.action.toLowerCase().contains('setting')) {
-                    widget.onNavigate?.call('settings');
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: provider.recentActivity.map((entry) {
+                  IconData actionIcon;
+                  Color actionColor;
+                  switch (entry.action.toLowerCase()) {
+                    case 'user suspended':
+                      actionIcon = Icons.block_rounded;
+                      actionColor = const Color(0xFFF59E0B);
+                      break;
+                    case 'content flagged':
+                      actionIcon = Icons.flag_rounded;
+                      actionColor = const Color(0xFFEF5350);
+                      break;
+                    case 'content removed':
+                      actionIcon = Icons.delete_rounded;
+                      actionColor = const Color(0xFFEF5350);
+                      break;
+                    case 'new admin added':
+                      actionIcon = Icons.person_add_rounded;
+                      actionColor = const Color(0xFF00BA7C);
+                      break;
+                    default:
+                      actionIcon = Icons.info_outline_rounded;
+                      actionColor = isDark ? const Color(0xFF888888) : const Color(0xFF999999);
                   }
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: actionColor.withValues(alpha: isDark ? 0.12 : 0.08),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(actionIcon, size: 16, color: actionColor),
+
+                  return InkWell(
+                    onTap: () {
+                      if (entry.action.toLowerCase().contains('user')) {
+                        widget.onNavigate?.call('users');
+                      } else if (entry.action.toLowerCase().contains('content')) {
+                        widget.onNavigate?.call('content');
+                      } else if (entry.action.toLowerCase().contains('setting')) {
+                        widget.onNavigate?.call('settings');
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: actionColor.withValues(alpha: isDark ? 0.12 : 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(actionIcon, size: 16, color: actionColor),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(entry.action, style: TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                                )),
+                                const SizedBox(height: 2),
+                                Text('${entry.performedBy} -> ${entry.target}', style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? const Color(0xFF666666) : const Color(0xFF888888),
+                                )),
+                              ],
+                            ),
+                          ),
+                          Text(_timeAgo(entry.timestamp), style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? const Color(0xFF444444) : const Color(0xFFAAAAAA),
+                          )),
+                        ],
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(entry.action, style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                            )),
-                            const SizedBox(height: 2),
-                            Text('${entry.performedBy} -> ${entry.target}', style: TextStyle(
-                              fontSize: 12,
-                              color: isDark ? const Color(0xFF666666) : const Color(0xFF888888),
-                            )),
-                          ],
-                        ),
-                      ),
-                      Text(_timeAgo(entry.timestamp), style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? const Color(0xFF444444) : const Color(0xFFAAAAAA),
-                      )),
-                    ],
-                  ),
-                ),
-              );
-            }),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Divider(color: borderColor, height: 1),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () => widget.onNavigate?.call('activity'),
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('View Full Audit Log', style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w600,
+                    color: isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0),
+                  )),
+                  const SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_rounded, size: 14, color: isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -324,12 +359,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             fontSize: 16, fontWeight: FontWeight.w700,
             color: isDark ? Colors.white : const Color(0xFF1A1A1A),
           )),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           ...items.map((item) => InkWell(
             onTap: () => widget.onNavigate?.call(item['route'] as String),
             borderRadius: BorderRadius.circular(8),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
               child: Row(
                 children: [
                   Container(
@@ -371,12 +406,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text('Quick Actions', style: TextStyle(
             fontSize: 16, fontWeight: FontWeight.w700,
             color: isDark ? Colors.white : const Color(0xFF1A1A1A),
           )),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _buildActionButton(isDark, Icons.person_add_rounded, 'Add New User', () {
             widget.onNavigate?.call('users');
           }),
