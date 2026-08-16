@@ -14,6 +14,7 @@ class AdminUsersProvider extends ChangeNotifier {
   String? _roleFilter;
 
   List<ManagedUser> get users => _users;
+  bool get isLoading => _state == UserLoadState.loading;
   UserLoadState get state => _state;
   String? get error => _error;
   String get searchQuery => _searchQuery;

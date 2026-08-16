@@ -12,6 +12,8 @@ class AdminContentProvider extends ChangeNotifier {
   String? _statusFilter;
 
   List<ManagedContent> get content => _content;
+  bool get isLoading => _state == ContentLoadState.loading;
+  Future<bool> updateContentStatus(String id, String status) => updateStatus(id, status);
   ContentLoadState get state => _state;
   String? get error => _error;
   String get searchQuery => _searchQuery;

@@ -13,6 +13,8 @@ class AdminSettingsProvider extends ChangeNotifier {
 
   AppSettingsModel get settings => _settings;
   SettingsLoadState get state => _state;
+  bool get isLoading => _state == SettingsLoadState.loading;
+  bool get isSaving => _state == SettingsLoadState.saving;
   String? get error => _error;
   String? get successMessage => _successMessage;
 

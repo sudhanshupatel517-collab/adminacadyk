@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/admin_settings_provider.dart';
 import '../providers/admin_auth_provider.dart';
+import '../widgets/admin_form_field.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -11,11 +12,6 @@ class AdminSettingsScreen extends StatefulWidget {
 }
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
-  final _nameController = TextEditingController();
-  final _taglineController = TextEditingController();
-  final _emailController = TextEditingController();
-  bool _initialized = false;
-
   @override
   void initState() {
     super.initState();
@@ -25,232 +21,159 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _taglineController.dispose();
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<AdminSettingsProvider>();
-    final auth = context.watch<AdminAuthProvider>();
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
+    final isSuperAdmin = context.watch<AdminAuthProvider>().isSuperAdmin;
+    final settings = provider.settings;
 
-    if (provider.state == SettingsLoadState.loaded && !_initialized) {
-      _nameController.text = provider.settings.appName;
-      _taglineController.text = provider.settings.tagline;
-      _emailController.text = provider.settings.contactEmail;
-      _initialized = true;
+    if (provider.isLoading || settings == null) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
 
-    final settings = provider.settings;
-    final isSuperAdmin = auth.isSuperAdmin;
-
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'System Settings & Governance',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Global platform configurations, feature switches, and administrative parameters',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? const Color(0xFF888888) : const Color(0xFF666666),
-                    ),
-                  ),
-                ],
+          // Success/Error messages
+          if (provider.successMessage != null)
+            _buildBanner(provider.successMessage!, const Color(0xFF00BA7C), isDark),
+          if (provider.error != null)
+            _buildBanner(provider.error!, const Color(0xFFF87171), isDark),
+
+          // App Settings
+          _buildSection('Application Settings', isDark, [
+            AdminFormRow(children: [
+              AdminTextField(
+                label: 'App Name',
+                value: settings.appName,
+                onChanged: (v) => provider.updateSettings(settings.copyWith(appName: v)),
+                enabled: isSuperAdmin,
               ),
-              Row(
-                children: [
-                  OutlinedButton(
-                    onPressed: () async {
-                      await provider.resetDefaults();
-                      _initialized = false;
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Default configurations restored.')),
-                        );
-                      }
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                      side: BorderSide(color: isDark ? const Color(0xFF333333) : const Color(0xFFCCCCCC)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: const Text('Reset Defaults'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: provider.state == SettingsLoadState.saving
-                        ? null
-                        : () async {
-                            final updated = settings.copyWith(
-                              appName: _nameController.text.trim(),
-                              tagline: _taglineController.text.trim(),
-                              contactEmail: _emailController.text.trim(),
-                            );
-                            provider.updateSettings(updated);
-                            final success = await provider.saveSettings();
-                            if (context.mounted && success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Settings saved successfully.')),
-                              );
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                      foregroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: provider.state == SettingsLoadState.saving
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Save Changes'),
-                  ),
-                ],
+              AdminTextField(
+                label: 'Tagline',
+                value: settings.tagline,
+                onChanged: (v) => provider.updateSettings(settings.copyWith(tagline: v)),
+                enabled: isSuperAdmin,
               ),
-            ],
-          ),
+            ]),
+            AdminFormRow(children: [
+              AdminTextField(
+                label: 'Contact Email',
+                value: settings.contactEmail,
+                onChanged: (v) => provider.updateSettings(settings.copyWith(contactEmail: v)),
+                enabled: isSuperAdmin,
+              ),
+            ]),
+          ]),
+
           const SizedBox(height: 24),
 
-          // Platform General Identity Card
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: borderColor),
+          // Feature Flags
+          _buildSection('Feature Flags', isDark, [
+            AdminSwitchField(
+              label: 'Maintenance Mode',
+              subtitle: 'Disables the app for all users',
+              value: settings.maintenanceMode,
+              onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(maintenanceMode: v)) : null,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Platform Identity',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Platform Name'),
-                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _taglineController,
-                  decoration: const InputDecoration(labelText: 'Tagline'),
-                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Support Contact Email'),
-                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-                ),
-              ],
+            const SizedBox(height: 8),
+            AdminSwitchField(
+              label: 'AI Recommendations',
+              subtitle: 'Enable AI-powered content suggestions',
+              value: settings.enableAIRecommendations,
+              onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(enableAIRecommendations: v)) : null,
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            AdminSwitchField(
+              label: 'Real-time Chat',
+              subtitle: 'WebSocket-based messaging',
+              value: settings.enableRealtimeChat,
+              onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(enableRealtimeChat: v)) : null,
+            ),
+            const SizedBox(height: 8),
+            AdminSwitchField(
+              label: 'Startups',
+              subtitle: 'Student startup showcase feature',
+              value: settings.enableStartups,
+              onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(enableStartups: v)) : null,
+            ),
+            const SizedBox(height: 8),
+            AdminSwitchField(
+              label: 'Leaderboard',
+              subtitle: 'Gamified ranking system',
+              value: settings.enableLeaderboard,
+              onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(enableLeaderboard: v)) : null,
+            ),
+            const SizedBox(height: 8),
+            AdminSwitchField(
+              label: 'Events',
+              subtitle: 'Campus event discovery',
+              value: settings.enableEvents,
+              onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(enableEvents: v)) : null,
+            ),
+          ]),
 
-          // Feature Switches Card
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: borderColor),
+          if (isSuperAdmin) ...[
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: provider.isSaving ? null : () => provider.saveSettings(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? Colors.white : Colors.black,
+                  foregroundColor: isDark ? Colors.black : Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: provider.isSaving
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Save Settings', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Feature Modules & Platform Governance',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-                ),
-                const SizedBox(height: 16),
-                _buildSwitchTile(
-                  isDark,
-                  'Maintenance Mode',
-                  'Temporarily restrict regular student/faculty access while maintenance occurs',
-                  settings.maintenanceMode,
-                  (v) => provider.updateSettings(settings.copyWith(maintenanceMode: v)),
-                ),
-                _buildSwitchTile(
-                  isDark,
-                  'AI Recommendations',
-                  'Enable machine learning opportunity matching for students',
-                  settings.enableAIRecommendations,
-                  (v) => provider.updateSettings(settings.copyWith(enableAIRecommendations: v)),
-                ),
-                _buildSwitchTile(
-                  isDark,
-                  'Real-time Messaging',
-                  'Enable direct peer-to-peer and club group chats',
-                  settings.enableRealtimeChat,
-                  (v) => provider.updateSettings(settings.copyWith(enableRealtimeChat: v)),
-                ),
-                _buildSwitchTile(
-                  isDark,
-                  'Startup & Incubator Showcase',
-                  'Allow student entrepreneurs to submit and showcase campus ventures',
-                  settings.enableStartups,
-                  (v) => provider.updateSettings(settings.copyWith(enableStartups: v)),
-                ),
-                _buildSwitchTile(
-                  isDark,
-                  'Campus Events',
-                  'Allow clubs to schedule public campus calendar events',
-                  settings.enableEvents,
-                  (v) => provider.updateSettings(settings.copyWith(enableEvents: v)),
-                ),
-              ],
-            ),
-          ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildSwitchTile(bool isDark, String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+  Widget _buildSection(String title, bool isDark, List<Widget> children) {
+    final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE5E7EB);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF111111) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
-                const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF888888) : const Color(0xFF666666))),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            activeColor: const Color(0xFF00BA7C),
-            onChanged: onChanged,
-          ),
+          Text(title, style: TextStyle(
+            fontSize: 16, fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : Colors.black,
+          )),
+          const SizedBox(height: 20),
+          ...children,
         ],
+      ),
+    );
+  }
+
+  Widget _buildBanner(String message, Color color, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Text(message, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w500)),
       ),
     );
   }
