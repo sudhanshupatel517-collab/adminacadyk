@@ -1,7 +1,6 @@
 # Flutter / Dart
 .dart_tool/
 .packages
-build/
 .flutter-plugins
 .flutter-plugins-dependencies
 
@@ -9,6 +8,3 @@ build/
 .idea/
 *.iml
 .vscode/
-
-# Web compiled output (uncomment if you want to exclude built js)
-# build/web/
