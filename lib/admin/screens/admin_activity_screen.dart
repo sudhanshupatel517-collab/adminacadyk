@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/admin_dashboard_provider.dart';
+import '../data/admin_service.dart';
 import '../data/admin_models.dart';
+import '../widgets/admin_search_bar.dart';
+import '../widgets/admin_empty_state.dart';
 import '../widgets/admin_responsive.dart';
-import 'package:timeago/timeago.dart' as timeago;
 
 class AdminActivityScreen extends StatefulWidget {
   const AdminActivityScreen({super.key});
@@ -13,244 +13,236 @@ class AdminActivityScreen extends StatefulWidget {
 }
 
 class _AdminActivityScreenState extends State<AdminActivityScreen> {
+  List<ActivityLogEntry> _allEntries = [];
+  bool _isLoading = true;
+  String _categoryFilter = '';
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<AdminDashboardProvider>();
-      if (provider.recentActivity.isEmpty) provider.loadDashboard();
-    });
+    _loadLogs();
+  }
+
+  Future<void> _loadLogs() async {
+    setState(() => _isLoading = true);
+    final logs = await AdminService.getActivityLog();
+    if (mounted) {
+      setState(() {
+        _allEntries = logs;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final provider = context.watch<AdminDashboardProvider>();
-    final entries = provider.recentActivity;
+    final cardBg = isDark ? const Color(0xFF13171F) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF21262D) : const Color(0xFFE5E7EB);
+    final textPrimary = isDark ? const Color(0xFFF0F6FC) : const Color(0xFF111827);
+    final textSecondary = isDark ? const Color(0xFF8B949E) : const Color(0xFF6B7280);
 
-    if (provider.state == LoadState.loading) {
-      return Center(child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.white : const Color(0xFF1A1A1A)));
-    }
+    final filtered = _allEntries.where((e) {
+      if (_categoryFilter.isNotEmpty && e.category != _categoryFilter) return false;
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        return e.action.toLowerCase().contains(q) ||
+            e.performedBy.toLowerCase().contains(q) ||
+            e.target.toLowerCase().contains(q);
+      }
+      return true;
+    }).toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text('Activity Log', style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-              )),
-              const Spacer(),
-              OutlinedButton.icon(
-                onPressed: () => provider.loadDashboard(),
-                icon: Icon(Icons.refresh_rounded, size: 16, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555)),
-                label: Text('Refresh', style: TextStyle(color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555))),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          if (entries.isEmpty)
-            Center(child: Padding(
-              padding: const EdgeInsets.all(60),
-              child: Column(
+          // Filter Toolbar
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < AdminBreakpoints.mobile;
+              if (isMobile) {
+                return Column(
+                  children: [
+                    AdminSearchBar(
+                      hint: 'Search audit log by actor, action or target...',
+                      onChanged: (q) => setState(() => _searchQuery = q),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCategoryDropdown(isDark),
+                  ],
+                );
+              }
+              return Row(
                 children: [
-                  Icon(Icons.history_rounded, size: 48, color: isDark ? const Color(0xFF333333) : const Color(0xFFCCCCCC)),
-                  const SizedBox(height: 12),
-                  Text('No activity recorded yet.', style: TextStyle(color: isDark ? const Color(0xFF888888) : const Color(0xFF888888))),
+                  Expanded(
+                    child: AdminSearchBar(
+                      hint: 'Search system audit log by actor, action, or target...',
+                      onChanged: (q) => setState(() => _searchQuery = q),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  _buildCategoryDropdown(isDark),
                 ],
-              ),
-            ))
-          else
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isDesktop = constraints.maxWidth >= AdminBreakpoints.tablet;
+              );
+            },
+          ),
+          const SizedBox(height: 16),
 
-                if (isDesktop) {
-                  // DESKTOP: Table-like horizontal rows
-                  return _buildDesktopTable(entries, isDark);
-                } else {
-                  // MOBILE: Vertical cards
-                  return _buildMobileCards(entries, isDark);
-                }
-              },
+          // Audit Log Table
+          Container(
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderColor),
             ),
+            child: _isLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  )
+                : filtered.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.all(32),
+                        child: AdminEmptyState(
+                          icon: Icons.history_rounded,
+                          title: 'No audit logs found',
+                          subtitle: 'Try adjusting your category filter or search query.',
+                        ),
+                      )
+                    : Table(
+                        columnWidths: const {
+                          0: FlexColumnWidth(1.2),
+                          1: FlexColumnWidth(2.0),
+                          2: FlexColumnWidth(2.0),
+                          3: FlexColumnWidth(2.0),
+                          4: FlexColumnWidth(1.5),
+                        },
+                        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                        children: [
+                          TableRow(
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF161B22) : const Color(0xFFF9FAFB),
+                              border: Border(bottom: BorderSide(color: borderColor)),
+                            ),
+                            children: [
+                              _buildTableHeader('EVENT ID', isDark),
+                              _buildTableHeader('ACTION', isDark),
+                              _buildTableHeader('PERFORMED BY', isDark),
+                              _buildTableHeader('TARGET RESOURCE', isDark),
+                              _buildTableHeader('TIMESTAMP', isDark, alignRight: true),
+                            ],
+                          ),
+                          ...filtered.map((e) {
+                            return TableRow(
+                              decoration: BoxDecoration(
+                                border: Border(bottom: BorderSide(color: borderColor.withOpacity(0.6))),
+                              ),
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  child: Text(e.id, style: TextStyle(fontSize: 12, fontFamily: 'monospace', color: textSecondary)),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(shape: BoxShape.circle, color: _getCategoryColor(e.category)),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(e.action, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary)),
+                                    ],
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  child: Text(e.performedBy, style: TextStyle(fontSize: 12, color: textPrimary)),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  child: Text(e.target, style: TextStyle(fontSize: 12, color: textSecondary)),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  child: Text(
+                                    _formatTimestamp(e.timestamp),
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(fontSize: 11, color: textSecondary),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
+          ),
         ],
       ),
     );
   }
 
-  // â”€â”€ DESKTOP: Horizontal table rows â”€â”€
-  Widget _buildDesktopTable(List<ActivityLogEntry> entries, bool isDark) {
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
-    final headerBg = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF9F9F9);
-    final headerText = isDark ? const Color(0xFF888888) : const Color(0xFF888888);
+  Widget _buildCategoryDropdown(bool isDark) {
+    final borderColor = isDark ? const Color(0xFF21262D) : const Color(0xFFD1D5DB);
+    final bg = isDark ? const Color(0xFF13171F) : Colors.white;
+    final text = isDark ? const Color(0xFFF0F6FC) : const Color(0xFF111827);
 
     return Container(
-      width: double.infinity,
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(12),
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: borderColor),
       ),
-      child: Column(
-        children: [
-          // Header row
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            decoration: BoxDecoration(
-              color: headerBg,
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
-            ),
-            child: Row(
-              children: [
-                Expanded(flex: 1, child: Text('', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText))),
-                Expanded(flex: 3, child: Text('Action', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-                Expanded(flex: 2, child: Text('Performed By', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-                Expanded(flex: 3, child: Text('Target', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-                Expanded(flex: 2, child: Align(alignment: Alignment.centerRight, child: Text('Time', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3)))),
-              ],
-            ),
-          ),
-          Container(height: 1, color: borderColor),
-          // Data rows
-          ...entries.map((item) {
-            final iconInfo = _getActionIcon(item.action, isDark);
-            String timeAgo;
-            try { timeAgo = timeago.format(item.timestamp); } catch (_) { timeAgo = 'recently'; }
-
-            return Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  child: Row(
-                    children: [
-                      Expanded(flex: 1, child: Container(
-                        width: 32, height: 32,
-                        decoration: BoxDecoration(
-                          color: iconInfo.color.withValues(alpha: isDark ? 0.12 : 0.08),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(iconInfo.icon, size: 16, color: iconInfo.color),
-                      )),
-                      Expanded(flex: 3, child: Text(item.action, style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                      ))),
-                      Expanded(flex: 2, child: Text(item.performedBy, style: TextStyle(
-                        fontSize: 13, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-                      ))),
-                      Expanded(flex: 3, child: Text(item.target, style: TextStyle(
-                        fontSize: 13, color: isDark ? const Color(0xFF888888) : const Color(0xFF999999),
-                      ), overflow: TextOverflow.ellipsis)),
-                      Expanded(flex: 2, child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(timeAgo, style: TextStyle(
-                          fontSize: 12, color: isDark ? const Color(0xFF666666) : const Color(0xFFAAAAAA),
-                        )),
-                      )),
-                    ],
-                  ),
-                ),
-                Container(height: 1, color: borderColor),
-              ],
-            );
-          }),
-        ],
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _categoryFilter,
+          style: TextStyle(fontSize: 12, color: text, fontWeight: FontWeight.w500),
+          dropdownColor: bg,
+          icon: Icon(Icons.arrow_drop_down_rounded, size: 18, color: text),
+          onChanged: (v) => setState(() => _categoryFilter = v ?? ''),
+          items: const [
+            DropdownMenuItem(value: '', child: Text('All Events')),
+            DropdownMenuItem(value: 'user', child: Text('User Management')),
+            DropdownMenuItem(value: 'content', child: Text('Content Moderation')),
+            DropdownMenuItem(value: 'settings', child: Text('System Settings')),
+            DropdownMenuItem(value: 'system', child: Text('System Actions')),
+          ],
+        ),
       ),
     );
   }
 
-  // â”€â”€ MOBILE: Vertical cards â”€â”€
-  Widget _buildMobileCards(List<ActivityLogEntry> entries, bool isDark) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: entries.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, index) {
-        final item = entries[index];
-        final iconInfo = _getActionIcon(item.action, isDark);
-        String timeAgo;
-        try { timeAgo = timeago.format(item.timestamp); } catch (_) { timeAgo = 'recently'; }
-
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF161616) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: iconInfo.color.withValues(alpha: isDark ? 0.12 : 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(iconInfo.icon, size: 18, color: iconInfo.color),
-              ),
-              const SizedBox(width: 14),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.action, style: TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                  )),
-                  const SizedBox(height: 4),
-                  Text('by ${item.performedBy}', style: TextStyle(
-                    fontSize: 13, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-                  )),
-                  Text(item.target, style: TextStyle(
-                    fontSize: 12, color: isDark ? const Color(0xFF888888) : const Color(0xFF999999),
-                  )),
-                  const SizedBox(height: 6),
-                  Text(timeAgo, style: TextStyle(
-                    fontSize: 11, color: isDark ? const Color(0xFF555555) : const Color(0xFFAAAAAA),
-                  )),
-                ],
-              )),
-            ],
-          ),
-        );
-      },
+  Widget _buildTableHeader(String title, bool isDark, {bool alignRight = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Text(
+        title,
+        textAlign: alignRight ? TextAlign.right : TextAlign.left,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6, color: isDark ? const Color(0xFF8B949E) : const Color(0xFF6B7280)),
+      ),
     );
   }
 
-  _ActionIconInfo _getActionIcon(String action, bool isDark) {
-    switch (action.toLowerCase()) {
-      case 'user suspended':
-        return _ActionIconInfo(Icons.block_rounded, const Color(0xFFF59E0B));
-      case 'content flagged':
-        return _ActionIconInfo(Icons.flag_rounded, const Color(0xFFEF5350));
-      case 'content removed':
-        return _ActionIconInfo(Icons.delete_rounded, const Color(0xFFEF5350));
-      case 'settings updated':
-        return _ActionIconInfo(Icons.settings_rounded, isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0));
-      case 'user role changed':
-        return _ActionIconInfo(Icons.admin_panel_settings_rounded, isDark ? const Color(0xFFCE93D8) : const Color(0xFF7B1FA2));
-      case 'new admin added':
-        return _ActionIconInfo(Icons.person_add_rounded, const Color(0xFF00BA7C));
+  Color _getCategoryColor(String cat) {
+    switch (cat) {
+      case 'user':
+        return const Color(0xFF0A66C2);
+      case 'content':
+        return const Color(0xFFDC2626);
+      case 'settings':
+        return const Color(0xFFD97706);
       default:
-        return _ActionIconInfo(Icons.info_outline_rounded, isDark ? const Color(0xFF888888) : const Color(0xFF999999));
+        return const Color(0xFF059669);
     }
   }
-}
 
-class _ActionIconInfo {
-  final IconData icon;
-  final Color color;
-  _ActionIconInfo(this.icon, this.color);
+  String _formatTimestamp(DateTime dt) {
+    return '${dt.day}/${dt.month}/${dt.year} ${dt.hour.toString().padLeft(2, "0")}:${dt.minute.toString().padLeft(2, "0")}';
+  }
 }

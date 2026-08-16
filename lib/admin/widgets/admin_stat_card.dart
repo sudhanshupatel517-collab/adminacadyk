@@ -1,81 +1,88 @@
 import 'package:flutter/material.dart';
 
 class AdminStatCard extends StatelessWidget {
-  final String title;
+  final String label;
   final String value;
-  final IconData icon;
-  final Color? iconColor;
   final String? subtitle;
+  final IconData? icon;
+  final VoidCallback? onTap;
+  final Color? accentColor;
 
   const AdminStatCard({
     super.key,
-    required this.title,
+    required this.label,
     required this.value,
-    required this.icon,
-    this.iconColor,
     this.subtitle,
+    this.icon,
+    this.onTap,
+    this.accentColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
-    final effectiveIconColor = iconColor ?? (isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555));
+    final cardBg = isDark ? const Color(0xFF13171F) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF21262D) : const Color(0xFFE5E7EB);
+    final textPrimary = isDark ? const Color(0xFFF0F6FC) : const Color(0xFF111827);
+    final textSecondary = isDark ? const Color(0xFF8B949E) : const Color(0xFF6B7280);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: effectiveIconColor.withValues(alpha: isDark ? 0.12 : 0.08),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 20, color: effectiveIconColor),
-              ),
-              if (subtitle != null)
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: subtitle!.contains('+')
-                          ? const Color(0xFF00BA7C).withValues(alpha: 0.1)
-                          : (isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5)),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(subtitle!, style: TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w600,
-                      color: subtitle!.contains('+')
-                          ? const Color(0xFF00BA7C)
-                          : (isDark ? const Color(0xFF888888) : const Color(0xFF999999)),
-                    ), overflow: TextOverflow.ellipsis),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.6,
+                    color: textSecondary,
                   ),
                 ),
+                if (icon != null)
+                  Icon(
+                    icon,
+                    size: 16,
+                    color: accentColor ?? textSecondary,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: textPrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                subtitle!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: textSecondary,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Text(value, style: TextStyle(
-            fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-          ), overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          Text(title, style: TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w500,
-            color: isDark ? const Color(0xFF888888) : const Color(0xFF888888),
-          ), overflow: TextOverflow.ellipsis),
-        ],
+          ],
+        ),
       ),
     );
   }

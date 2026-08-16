@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/admin_dashboard_provider.dart';
 import '../widgets/admin_stat_card.dart';
 import '../widgets/admin_responsive.dart';
+import '../data/admin_models.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -24,12 +25,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<AdminDashboardProvider>();
+    final cardBg = isDark ? const Color(0xFF13171F) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF21262D) : const Color(0xFFE5E7EB);
+    final textPrimary = isDark ? const Color(0xFFF0F6FC) : const Color(0xFF111827);
+    final textSecondary = isDark ? const Color(0xFF8B949E) : const Color(0xFF6B7280);
 
     if (provider.state == LoadState.loading) {
-      return Center(child: CircularProgressIndicator(
-        strokeWidth: 2,
-        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-      ));
+      return Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: isDark ? const Color(0xFFF0F6FC) : const Color(0xFF0A66C2),
+        ),
+      );
     }
 
     if (provider.state == LoadState.error) {
@@ -37,18 +44,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off_rounded, size: 48, color: isDark ? const Color(0xFF333333) : const Color(0xFFCCCCCC)),
+            Icon(Icons.error_outline_rounded, size: 36, color: isDark ? const Color(0xFF8B949E) : const Color(0xFF9CA3AF)),
             const SizedBox(height: 12),
-            Text(provider.error ?? 'Unable to load dashboard', style: TextStyle(
-              color: isDark ? const Color(0xFF888888) : const Color(0xFF888888),
-            )),
+            Text(provider.error ?? 'Failed to load dashboard metrics.', style: TextStyle(color: textSecondary, fontSize: 13)),
             const SizedBox(height: 16),
             OutlinedButton(
               onPressed: () => provider.loadDashboard(),
               style: OutlinedButton.styleFrom(
-                foregroundColor: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                side: BorderSide(color: isDark ? const Color(0xFF333333) : const Color(0xFFCCCCCC)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                foregroundColor: textPrimary,
+                side: BorderSide(color: borderColor),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
               ),
               child: const Text('Retry'),
             ),
@@ -57,47 +62,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
     }
 
-    final stats = provider.stats;
-    if (stats == null) return const SizedBox.shrink();
+    final stats = provider.stats ?? DashboardStats();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isDesktop = constraints.maxWidth >= AdminBreakpoints.tablet;
-          final isTabletSize = constraints.maxWidth >= AdminBreakpoints.mobile && !isDesktop;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Stat Cards Grid
-              _buildStatGrid(stats, isDark, constraints.maxWidth),
-              const SizedBox(height: 24),
+              // Top Metric Row
+              _buildMetricGrid(stats, constraints.maxWidth),
+              const SizedBox(height: 20),
 
-              // Content Area
+              // Main Content Layout
               if (isDesktop)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(flex: 3, child: _buildRecentActivity(isDark, provider)),
+                    Expanded(
+                      flex: 3,
+                      child: _buildRecentActivitySection(isDark, cardBg, borderColor, textPrimary, textSecondary, provider.recentActivity),
+                    ),
                     const SizedBox(width: 20),
-                    Expanded(flex: 2, child: Column(
-                      children: [
-                        _buildPlatformOverview(isDark, stats),
-                        const SizedBox(height: 20),
-                        _buildQuickActions(isDark),
-                      ],
-                    )),
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        children: [
+                          _buildSystemHealthCard(isDark, cardBg, borderColor, textPrimary, textSecondary, stats),
+                          const SizedBox(height: 20),
+                          _buildInstitutionalBreakdownCard(isDark, cardBg, borderColor, textPrimary, textSecondary),
+                        ],
+                      ),
+                    ),
                   ],
                 )
               else
                 Column(
                   children: [
-                    _buildRecentActivity(isDark, provider),
+                    _buildRecentActivitySection(isDark, cardBg, borderColor, textPrimary, textSecondary, provider.recentActivity),
                     const SizedBox(height: 20),
-                    _buildPlatformOverview(isDark, stats),
+                    _buildSystemHealthCard(isDark, cardBg, borderColor, textPrimary, textSecondary, stats),
                     const SizedBox(height: 20),
-                    _buildQuickActions(isDark),
+                    _buildInstitutionalBreakdownCard(isDark, cardBg, borderColor, textPrimary, textSecondary),
                   ],
                 ),
             ],
@@ -107,276 +116,281 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildStatGrid(dynamic stats, bool isDark, double width) {
+  Widget _buildMetricGrid(DashboardStats stats, double maxWidth) {
+    int crossAxisCount = 4;
+    if (maxWidth < 640) {
+      crossAxisCount = 2;
+    } else if (maxWidth < 960) {
+      crossAxisCount = 2;
+    }
+
     final cards = [
       AdminStatCard(
-        title: 'Total Users', value: '${stats.totalUsers}',
-        icon: Icons.people_alt_rounded,
-        iconColor: isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0),
-        subtitle: '+${stats.newUsersToday} today',
+        label: 'Total Registered',
+        value: '${stats.totalUsers}',
+        subtitle: '${stats.activeUsers} active accounts',
+        icon: Icons.people_outline_rounded,
+        accentColor: const Color(0xFF0A66C2),
       ),
       AdminStatCard(
-        title: 'Active Users', value: '${stats.activeUsers}',
-        icon: Icons.person_rounded,
-        iconColor: const Color(0xFF00BA7C),
-        subtitle: '${((stats.activeUsers / stats.totalUsers) * 100).toStringAsFixed(0)}%',
+        label: 'Active Content',
+        value: '${stats.totalPosts}',
+        subtitle: '${stats.totalOpportunities} career opportunities',
+        icon: Icons.article_outlined,
+        accentColor: const Color(0xFF059669),
       ),
       AdminStatCard(
-        title: 'Total Posts', value: '${stats.totalPosts}',
-        icon: Icons.description_rounded,
-        iconColor: isDark ? const Color(0xFFCE93D8) : const Color(0xFF7B1FA2),
+        label: 'Campus Clubs',
+        value: '${stats.totalClubs}',
+        subtitle: '${stats.totalEvents} scheduled events',
+        icon: Icons.groups_outlined,
+        accentColor: const Color(0xFF7C3AED),
       ),
       AdminStatCard(
-        title: 'Pending Reports', value: '${stats.pendingReports}',
-        icon: Icons.flag_rounded,
-        iconColor: isDark ? const Color(0xFFEF9A9A) : const Color(0xFFC62828),
+        label: 'Pending Moderation',
+        value: '${stats.pendingReports}',
+        subtitle: stats.pendingReports > 0 ? 'Requires administrative review' : 'Queue is clear',
+        icon: Icons.flag_outlined,
+        accentColor: stats.pendingReports > 0 ? const Color(0xFFDC2626) : const Color(0xFF059669),
       ),
     ];
 
-    int crossAxisCount;
-    double childAspectRatio;
-
-    if (width >= AdminBreakpoints.tablet) {
-      crossAxisCount = 4;
-      childAspectRatio = 1.5;
-    } else if (width >= AdminBreakpoints.mobile) {
-      crossAxisCount = 2;
-      childAspectRatio = 1.7;
-    } else {
-      crossAxisCount = 2;
-      childAspectRatio = 1.2;
+    if (crossAxisCount == 4) {
+      return Row(
+        children: cards.map((c) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: c))).toList(),
+      );
     }
 
-    return GridView.builder(
+    return GridView.count(
+      crossAxisCount: crossAxisCount,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: childAspectRatio,
-      ),
-      itemCount: cards.length,
-      itemBuilder: (context, index) => cards[index],
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.6,
+      children: cards,
     );
   }
 
-  Widget _buildRecentActivity(bool isDark, AdminDashboardProvider provider) {
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
-
+  Widget _buildRecentActivitySection(
+    bool isDark,
+    Color cardBg,
+    Color borderColor,
+    Color textPrimary,
+    Color textSecondary,
+    List<ActivityLogEntry> activities,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Recent Activity', style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-              )),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E3A2F) : const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(6),
+              Text(
+                'Recent System Audit Log',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: textPrimary,
                 ),
-                child: Text('Live', style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w600,
-                  color: isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32),
-                )),
+              ),
+              Text(
+                'Latest entries',
+                style: TextStyle(fontSize: 12, color: textSecondary),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          if (provider.recentActivity.isEmpty)
+          const SizedBox(height: 16),
+          if (activities.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: Text('No recent activity', style: TextStyle(
-                color: isDark ? const Color(0xFF555555) : const Color(0xFFAAAAAA), fontSize: 13,
-              ))),
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text('No recent activities logged.', style: TextStyle(fontSize: 13, color: textSecondary)),
+              ),
             )
           else
-            ...provider.recentActivity.map((entry) {
-              IconData actionIcon;
-              Color actionColor;
-              switch (entry.action.toLowerCase()) {
-                case 'user suspended':
-                  actionIcon = Icons.block_rounded;
-                  actionColor = const Color(0xFFF59E0B);
-                  break;
-                case 'content flagged':
-                  actionIcon = Icons.flag_rounded;
-                  actionColor = const Color(0xFFEF5350);
-                  break;
-                case 'content removed':
-                  actionIcon = Icons.delete_rounded;
-                  actionColor = const Color(0xFFEF5350);
-                  break;
-                case 'new admin added':
-                  actionIcon = Icons.person_add_rounded;
-                  actionColor = const Color(0xFF00BA7C);
-                  break;
-                default:
-                  actionIcon = Icons.info_outline_rounded;
-                  actionColor = isDark ? const Color(0xFF888888) : const Color(0xFF999999);
-              }
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: activities.length,
+              separatorBuilder: (_, __) => Divider(color: borderColor, height: 16),
+              itemBuilder: (context, index) {
+                final a = activities[index];
+                return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      margin: const EdgeInsets.only(top: 2),
+                      width: 8,
+                      height: 8,
                       decoration: BoxDecoration(
-                        color: actionColor.withValues(alpha: isDark ? 0.12 : 0.08),
-                        borderRadius: BorderRadius.circular(8),
+                        shape: BoxShape.circle,
+                        color: _getCategoryColor(a.category),
                       ),
-                      child: Icon(actionIcon, size: 16, color: actionColor),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(entry.action, style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                          )),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                a.action,
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary),
+                              ),
+                              Text(
+                                _formatTimeAgo(a.timestamp),
+                                style: TextStyle(fontSize: 11, color: textSecondary),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 2),
-                          Text('${entry.performedBy} \u2192 ${entry.target}', style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? const Color(0xFF666666) : const Color(0xFF999999),
-                          )),
+                          Text(
+                            '${a.performedBy} -> ${a.target}',
+                            style: TextStyle(fontSize: 12, color: textSecondary),
+                          ),
                         ],
                       ),
                     ),
                   ],
-                ),
-              );
-            }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlatformOverview(bool isDark, dynamic stats) {
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
-    final items = [
-      {'label': 'Opportunities', 'value': '${stats.totalOpportunities}', 'icon': Icons.work_rounded, 'color': isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0)},
-      {'label': 'Clubs', 'value': '${stats.totalClubs}', 'icon': Icons.groups_rounded, 'color': isDark ? const Color(0xFFCE93D8) : const Color(0xFF7B1FA2)},
-      {'label': 'Events', 'value': '${stats.totalEvents}', 'icon': Icons.event_rounded, 'color': isDark ? const Color(0xFFA5D6A7) : const Color(0xFF2E7D32)},
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Platform Overview', style: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-          )),
-          const SizedBox(height: 20),
-          ...items.map((item) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: (item['color'] as Color).withValues(alpha: isDark ? 0.12 : 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(item['icon'] as IconData, size: 18, color: item['color'] as Color),
-                ),
-                const SizedBox(width: 14),
-                Expanded(child: Text(item['label'] as String, style: TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w500,
-                  color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-                ))),
-                Text(item['value'] as String, style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                )),
-              ],
+                );
+              },
             ),
-          )),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActions(bool isDark) {
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
-
+  Widget _buildSystemHealthCard(
+    bool isDark,
+    Color cardBg,
+    Color borderColor,
+    Color textPrimary,
+    Color textSecondary,
+    DashboardStats stats,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Quick Actions', style: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-          )),
+          Text('Platform Status', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
           const SizedBox(height: 16),
-          _buildActionButton(isDark, Icons.person_add_rounded, 'Add New User'),
-          const SizedBox(height: 8),
-          _buildActionButton(isDark, Icons.shield_rounded, 'Review Reports'),
-          const SizedBox(height: 8),
-          _buildActionButton(isDark, Icons.download_rounded, 'Export Data'),
+          _buildHealthRow('Authentication & SSO', 'Active', const Color(0xFF059669), textPrimary, textSecondary),
+          Divider(color: borderColor, height: 16),
+          _buildHealthRow('Database Services', 'Synced', const Color(0xFF059669), textPrimary, textSecondary),
+          Divider(color: borderColor, height: 16),
+          _buildHealthRow('Real-time Messaging', 'Connected', const Color(0xFF059669), textPrimary, textSecondary),
+          Divider(color: borderColor, height: 16),
+          _buildHealthRow('Content Storage', '94% Available', const Color(0xFF0A66C2), textPrimary, textSecondary),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton(bool isDark, IconData icon, String label) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+  Widget _buildHealthRow(String service, String status, Color statusColor, Color textPrimary, Color textSecondary) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(service, style: TextStyle(fontSize: 12, color: textPrimary, fontWeight: FontWeight.w500)),
+        Row(
+          children: [
+            Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: statusColor)),
+            const SizedBox(width: 6),
+            Text(status, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: statusColor)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInstitutionalBreakdownCard(
+    bool isDark,
+    Color cardBg,
+    Color borderColor,
+    Color textPrimary,
+    Color textSecondary,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardBg,
         borderRadius: BorderRadius.circular(8),
-        onTap: () {},
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF7F7F8),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8)),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 18, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555)),
-              const SizedBox(width: 12),
-              Text(label, style: TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w500,
-                color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-              )),
-              const Spacer(),
-              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? const Color(0xFF555555) : const Color(0xFFCCCCCC)),
-            ],
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Department Distribution', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimary)),
+          const SizedBox(height: 16),
+          _buildDeptProgress('Computer Science & Eng.', 0.45, textPrimary, textSecondary),
+          const SizedBox(height: 10),
+          _buildDeptProgress('Information Technology', 0.25, textPrimary, textSecondary),
+          const SizedBox(height: 10),
+          _buildDeptProgress('Electronics & Comm.', 0.18, textPrimary, textSecondary),
+          const SizedBox(height: 10),
+          _buildDeptProgress('Mechanical & Civil', 0.12, textPrimary, textSecondary),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeptProgress(String name, double pct, Color textPrimary, Color textSecondary) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(name, style: TextStyle(fontSize: 11, color: textSecondary, fontWeight: FontWeight.w500)),
+            Text('${(pct * 100).toInt()}%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textPrimary)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: pct,
+            backgroundColor: textSecondary.withOpacity(0.15),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0A66C2)),
+            minHeight: 4,
           ),
         ),
-      ),
+      ],
     );
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case 'user':
+        return const Color(0xFF0A66C2);
+      case 'content':
+        return const Color(0xFFDC2626);
+      case 'settings':
+        return const Color(0xFFD97706);
+      default:
+        return const Color(0xFF059669);
+    }
+  }
+
+  String _formatTimeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 }

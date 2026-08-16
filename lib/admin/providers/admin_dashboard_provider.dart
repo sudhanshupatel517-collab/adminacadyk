@@ -26,7 +26,7 @@ class AdminDashboardProvider extends ChangeNotifier {
         AdminService.getActivityLog(),
       ]);
       _stats = results[0] as DashboardStats;
-      _recentActivity = (results[1] as List<ActivityLogEntry>).take(5).toList();
+      _recentActivity = (results[1] as List<ActivityLogEntry>).take(6).toList();
       _state = LoadState.loaded;
     } catch (e) {
       _error = 'Failed to load dashboard: $e';
