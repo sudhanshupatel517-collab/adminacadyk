@@ -1,11 +1,14 @@
 import 'package:dio/dio.dart';
 
 class ApiClient {
+  static String _baseUrl = 'http://localhost:8080/api';
+  static String? _authToken;
+
   static final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://localhost:8080/api',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -14,6 +17,22 @@ class ApiClient {
   );
 
   static Dio get dio => _dio;
+  static String get baseUrl => _baseUrl;
+
+  static void setBaseUrl(String url) {
+    _baseUrl = url;
+    _dio.options.baseUrl = url;
+  }
+
+  static void setAuthToken(String token) {
+    _authToken = token;
+    _dio.options.headers['Authorization'] = 'Bearer $token';
+  }
+
+  static void clearAuthToken() {
+    _authToken = null;
+    _dio.options.headers.remove('Authorization');
+  }
 
   static Future<Response> get(String path, {Map<String, dynamic>? queryParameters, Options? options}) async {
     return await _dio.get(path, queryParameters: queryParameters, options: options);

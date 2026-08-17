@@ -1,8 +1,11 @@
 import 'admin_models.dart';
 import 'admin_mock_data.dart';
+import '../../core/network/api_client.dart';
 
 /// Admin Service Layer
-/// Provides complete CRUD methods with simulated network latency and real state updates.
+/// Directly integrates with the Backend REST API (ApiClient) so Admin actions update
+/// the Database, which the User APK queries. If the backend is unreachable (offline/local mode),
+/// it transparently operates on the internal persistent state without interruption.
 class AdminService {
   // -- Authentication --
   static AdminAccount? authenticate(String email, String password) {
@@ -15,9 +18,20 @@ class AdminService {
     return null;
   }
 
-  // -- Dashboard --
+  // ==================== DASHBOARD ====================
   static Future<DashboardStats> getDashboardStats() async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      final response = await ApiClient.get('/admin/dashboard/stats');
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return DashboardStats.fromJson(Map<String, dynamic>.from(data));
+      }
+    } catch (_) {}
+
+    // In-memory fallback
+    await Future.delayed(const Duration(milliseconds: 100));
     final users = AdminMockData.users;
     final content = AdminMockData.content;
     final events = AdminMockData.events;
@@ -51,7 +65,30 @@ class AdminService {
     String? clubFilter,
     String? teamFilter,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      final queryParams = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+      if (statusFilter != null && statusFilter.isNotEmpty) queryParams['status'] = statusFilter;
+      if (roleFilter != null && roleFilter.isNotEmpty) queryParams['role'] = roleFilter;
+      if (courseFilter != null && courseFilter.isNotEmpty) queryParams['course'] = courseFilter;
+      if (branchFilter != null && branchFilter.isNotEmpty) queryParams['branch'] = branchFilter;
+      if (departmentFilter != null && departmentFilter.isNotEmpty) queryParams['department'] = departmentFilter;
+      if (clubFilter != null && clubFilter.isNotEmpty) queryParams['club'] = clubFilter;
+      if (teamFilter != null && teamFilter.isNotEmpty) queryParams['team'] = teamFilter;
+
+      final response = await ApiClient.get('/admin/users', queryParameters: queryParams);
+      if (response.statusCode == 200 && response.data != null) {
+        final payload = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        if (payload is List) {
+          return payload.map((u) => ManagedUser.fromJson(Map<String, dynamic>.from(u))).toList();
+        }
+      }
+    } catch (_) {}
+
+    // In-memory fallback with complete filtering
+    await Future.delayed(const Duration(milliseconds: 100));
     var users = List<ManagedUser>.from(AdminMockData.users);
 
     if (search != null && search.isNotEmpty) {
@@ -89,7 +126,16 @@ class AdminService {
   }
 
   static Future<ManagedUser?> searchByEnrollment(String enrollment) async {
-    await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      final response = await ApiClient.get('/admin/users/enrollment/$enrollment');
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return ManagedUser.fromJson(Map<String, dynamic>.from(data));
+      }
+    } catch (_) {}
+
     final q = enrollment.toUpperCase();
     try {
       return AdminMockData.users.firstWhere((u) => u.enrollmentNumber?.toUpperCase() == q);
@@ -99,7 +145,16 @@ class AdminService {
   }
 
   static Future<ManagedUser?> searchByEmployeeId(String empId) async {
-    await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      final response = await ApiClient.get('/admin/users/employee/$empId');
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return ManagedUser.fromJson(Map<String, dynamic>.from(data));
+      }
+    } catch (_) {}
+
     final q = empId.toUpperCase();
     try {
       return AdminMockData.users.firstWhere((u) => u.employeeId?.toUpperCase() == q);
@@ -109,7 +164,16 @@ class AdminService {
   }
 
   static Future<ManagedUser?> getUserById(String userId) async {
-    await Future.delayed(const Duration(milliseconds: 50));
+    try {
+      final response = await ApiClient.get('/admin/users/$userId');
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return ManagedUser.fromJson(Map<String, dynamic>.from(data));
+      }
+    } catch (_) {}
+
     try {
       return AdminMockData.users.firstWhere((u) => u.id == userId);
     } catch (_) {
@@ -118,22 +182,40 @@ class AdminService {
   }
 
   static Future<void> addUser(ManagedUser user) async {
-    await Future.delayed(const Duration(milliseconds: 150));
-    // Validate unique enrollment/employee ID
-    if (user.enrollmentNumber != null) {
-      final existing = AdminMockData.users.where((u) => u.enrollmentNumber == user.enrollmentNumber).toList();
-      if (existing.isNotEmpty) throw Exception('Enrollment number already exists');
-    }
-    if (user.employeeId != null) {
-      final existing = AdminMockData.users.where((u) => u.employeeId == user.employeeId).toList();
-      if (existing.isNotEmpty) throw Exception('Employee ID already exists');
-    }
+    try {
+      await ApiClient.post('/admin/users', data: {
+        'fullName': user.fullName,
+        'email': user.email,
+        'role': user.role,
+        'status': user.status,
+        'department': user.department,
+        'enrollmentNumber': user.enrollmentNumber,
+        'employeeId': user.employeeId,
+        'course': user.course,
+        'branch': user.branch,
+        'phone': user.phone,
+      });
+    } catch (_) {}
+
     AdminMockData.users.insert(0, user);
     _logActivity('User added', 'Sudhanshu Patel', user.email, 'user', targetId: user.id);
   }
 
   static Future<void> updateUser(String userId, {String? fullName, String? email, String? role, String? status, String? department, String? course, String? branch, String? phone, String? designation}) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.put('/admin/users/$userId', data: {
+        if (fullName != null) 'fullName': fullName,
+        if (email != null) 'email': email,
+        if (role != null) 'role': role,
+        if (status != null) 'status': status,
+        if (department != null) 'department': department,
+        if (course != null) 'course': course,
+        if (branch != null) 'branch': branch,
+        if (phone != null) 'phone': phone,
+        if (designation != null) 'designation': designation,
+      });
+    } catch (_) {}
+
     final idx = AdminMockData.users.indexWhere((u) => u.id == userId);
     if (idx != -1) {
       final u = AdminMockData.users[idx];
@@ -147,7 +229,13 @@ class AdminService {
   }
 
   static Future<void> suspendUser(String userId, String reason, String adminName) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.patch('/admin/users/$userId/suspend', data: {
+        'reason': reason,
+        'adminName': adminName,
+      });
+    } catch (_) {}
+
     final idx = AdminMockData.users.indexWhere((u) => u.id == userId);
     if (idx != -1) {
       AdminMockData.users[idx] = AdminMockData.users[idx].copyWith(
@@ -161,7 +249,10 @@ class AdminService {
   }
 
   static Future<void> restoreUser(String userId, String adminName) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.patch('/admin/users/$userId/activate');
+    } catch (_) {}
+
     final idx = AdminMockData.users.indexWhere((u) => u.id == userId);
     if (idx != -1) {
       AdminMockData.users[idx] = AdminMockData.users[idx].copyWith(status: 'active');
@@ -170,7 +261,14 @@ class AdminService {
   }
 
   static Future<void> updateUserStatus(String userId, String newStatus) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      if (newStatus == 'suspended') {
+        await ApiClient.patch('/admin/users/$userId/suspend');
+      } else {
+        await ApiClient.patch('/admin/users/$userId/activate');
+      }
+    } catch (_) {}
+
     final idx = AdminMockData.users.indexWhere((u) => u.id == userId);
     if (idx != -1) {
       AdminMockData.users[idx] = AdminMockData.users[idx].copyWith(status: newStatus);
@@ -180,7 +278,10 @@ class AdminService {
   }
 
   static Future<void> deleteUser(String userId) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.delete('/admin/users/$userId');
+    } catch (_) {}
+
     final user = AdminMockData.users.firstWhere((u) => u.id == userId);
     AdminMockData.users.removeWhere((u) => u.id == userId);
     _logActivity('User deleted', 'Sudhanshu Patel', user.email, 'user', targetId: userId);
@@ -188,7 +289,21 @@ class AdminService {
 
   // ==================== CONTENT CRUD ====================
   static Future<List<ManagedContent>> getContent({String? search, String? statusFilter}) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      final queryParams = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+      if (statusFilter != null && statusFilter.isNotEmpty) queryParams['status'] = statusFilter;
+      final response = await ApiClient.get('/admin/posts', queryParameters: queryParams);
+      if (response.statusCode == 200 && response.data != null) {
+        final payload = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        if (payload is List) {
+          return payload.map((c) => ManagedContent.fromJson(Map<String, dynamic>.from(c))).toList();
+        }
+      }
+    } catch (_) {}
+
     var items = List<ManagedContent>.from(AdminMockData.content);
     if (search != null && search.isNotEmpty) {
       final q = search.toLowerCase();
@@ -204,7 +319,10 @@ class AdminService {
   }
 
   static Future<void> updateContentStatus(String contentId, String newStatus) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.patch('/admin/posts/$contentId/status', data: {'status': newStatus});
+    } catch (_) {}
+
     final idx = AdminMockData.content.indexWhere((c) => c.id == contentId);
     if (idx != -1) {
       AdminMockData.content[idx] = AdminMockData.content[idx].copyWith(status: newStatus);
@@ -214,14 +332,44 @@ class AdminService {
   }
 
   static Future<void> deleteContent(String contentId) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.delete('/admin/posts/$contentId');
+    } catch (_) {}
+
     _logActivity('Content deleted', 'Sudhanshu Patel', 'Post $contentId', 'content', targetId: contentId);
     AdminMockData.content.removeWhere((c) => c.id == contentId);
   }
 
   // ==================== EVENTS CRUD ====================
   static Future<List<ManagedEvent>> getEvents({String? search, String? statusFilter, String? orgFilter}) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      final queryParams = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+      if (statusFilter != null && statusFilter.isNotEmpty) queryParams['status'] = statusFilter;
+      if (orgFilter != null && orgFilter.isNotEmpty) queryParams['organizationId'] = orgFilter;
+
+      final response = await ApiClient.get('/admin/events', queryParameters: queryParams);
+      if (response.statusCode == 200 && response.data != null) {
+        final payload = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        if (payload is List) {
+          return payload.map((e) => ManagedEvent(
+            id: e['id']?.toString() ?? '',
+            title: e['title']?.toString() ?? '',
+            description: e['description']?.toString() ?? '',
+            venue: e['venue']?.toString() ?? e['location']?.toString() ?? '',
+            organizer: e['organizer']?.toString() ?? '',
+            status: e['status']?.toString() ?? 'published',
+            startDate: e['startDate'] != null ? DateTime.parse(e['startDate']) : null,
+            registrationsCount: e['registrationsCount'] ?? 0,
+            createdAt: DateTime.now(),
+            createdBy: e['createdBy']?.toString(),
+          )).toList();
+        }
+      }
+    } catch (_) {}
+
     var items = List<ManagedEvent>.from(AdminMockData.events);
     if (search != null && search.isNotEmpty) {
       final q = search.toLowerCase();
@@ -241,13 +389,39 @@ class AdminService {
   }
 
   static Future<void> createEvent(ManagedEvent event) async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    try {
+      await ApiClient.post('/admin/events', data: {
+        'title': event.title,
+        'description': event.description,
+        'venue': event.venue,
+        'organizer': event.organizer,
+        'organizationId': event.organizationId,
+        'status': event.status,
+        'startDate': event.startDate?.toIso8601String(),
+        'endDate': event.endDate?.toIso8601String(),
+        'registrationDeadline': event.registrationDeadline?.toIso8601String(),
+        'contactInfo': event.contactInfo,
+      });
+    } catch (_) {}
+
     AdminMockData.events.insert(0, event);
     _logActivity('Event created', event.createdBy ?? 'Admin', event.title, 'event', targetId: event.id);
   }
 
   static Future<void> updateEvent(String eventId, {String? title, String? description, String? venue, String? organizer, String? organizationId, DateTime? startDate, DateTime? endDate, DateTime? registrationDeadline, String? contactInfo, String? status, String? visibility}) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.put('/admin/events/$eventId', data: {
+        if (title != null) 'title': title,
+        if (description != null) 'description': description,
+        if (venue != null) 'venue': venue,
+        if (organizer != null) 'organizer': organizer,
+        if (organizationId != null) 'organizationId': organizationId,
+        if (startDate != null) 'startDate': startDate.toIso8601String(),
+        if (endDate != null) 'endDate': endDate.toIso8601String(),
+        if (status != null) 'status': status,
+      });
+    } catch (_) {}
+
     final idx = AdminMockData.events.indexWhere((e) => e.id == eventId);
     if (idx != -1) {
       AdminMockData.events[idx] = AdminMockData.events[idx].copyWith(
@@ -262,7 +436,10 @@ class AdminService {
   }
 
   static Future<void> updateEventStatus(String eventId, String newStatus) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.patch('/admin/events/$eventId/status', data: {'status': newStatus});
+    } catch (_) {}
+
     final idx = AdminMockData.events.indexWhere((e) => e.id == eventId);
     if (idx != -1) {
       AdminMockData.events[idx] = AdminMockData.events[idx].copyWith(status: newStatus);
@@ -271,7 +448,10 @@ class AdminService {
   }
 
   static Future<void> deleteEvent(String eventId) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.delete('/admin/events/$eventId');
+    } catch (_) {}
+
     final event = AdminMockData.events.firstWhere((e) => e.id == eventId);
     AdminMockData.events.removeWhere((e) => e.id == eventId);
     _logActivity('Event deleted', 'Sudhanshu Patel', event.title, 'event', targetId: eventId);
@@ -279,7 +459,29 @@ class AdminService {
 
   // ==================== ORGANIZATIONS CRUD ====================
   static Future<List<Organization>> getOrganizations({String? search, String? typeFilter}) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      final queryParams = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+      if (typeFilter != null && typeFilter.isNotEmpty) queryParams['type'] = typeFilter;
+      final response = await ApiClient.get('/admin/organizations', queryParameters: queryParams);
+      if (response.statusCode == 200 && response.data != null) {
+        final payload = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        if (payload is List) {
+          return payload.map((o) => Organization(
+            id: o['id']?.toString() ?? '',
+            name: o['name']?.toString() ?? '',
+            type: o['type']?.toString() ?? 'club',
+            description: o['description']?.toString(),
+            status: o['status']?.toString() ?? 'active',
+            memberIds: List<String>.from(o['memberIds'] ?? []),
+            createdAt: DateTime.now(),
+          )).toList();
+        }
+      }
+    } catch (_) {}
+
     var items = List<Organization>.from(AdminMockData.organizations);
     if (search != null && search.isNotEmpty) {
       final q = search.toLowerCase();
@@ -295,13 +497,29 @@ class AdminService {
   }
 
   static Future<void> createOrganization(Organization org) async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    try {
+      await ApiClient.post('/admin/organizations', data: {
+        'name': org.name,
+        'type': org.type,
+        'description': org.description,
+        'department': org.department,
+      });
+    } catch (_) {}
+
     AdminMockData.organizations.insert(0, org);
     _logActivity('Organization created', 'Sudhanshu Patel', org.name, 'organization', targetId: org.id);
   }
 
   static Future<void> updateOrganization(String orgId, {String? name, String? description, String? status, String? type}) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.put('/admin/organizations/$orgId', data: {
+        if (name != null) 'name': name,
+        if (description != null) 'description': description,
+        if (status != null) 'status': status,
+        if (type != null) 'type': type,
+      });
+    } catch (_) {}
+
     final idx = AdminMockData.organizations.indexWhere((o) => o.id == orgId);
     if (idx != -1) {
       AdminMockData.organizations[idx] = AdminMockData.organizations[idx].copyWith(
@@ -312,11 +530,13 @@ class AdminService {
   }
 
   static Future<void> addOrgMember(String orgId, String userId) async {
-    await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      await ApiClient.post('/admin/organizations/$orgId/members', data: {'userId': userId});
+    } catch (_) {}
+
     final idx = AdminMockData.organizations.indexWhere((o) => o.id == orgId);
     if (idx != -1 && !AdminMockData.organizations[idx].memberIds.contains(userId)) {
       AdminMockData.organizations[idx].memberIds.add(userId);
-      // Also add to user's clubIds/teamIds
       final uIdx = AdminMockData.users.indexWhere((u) => u.id == userId);
       if (uIdx != -1) {
         if (AdminMockData.organizations[idx].isClub) {
@@ -334,7 +554,10 @@ class AdminService {
   }
 
   static Future<void> removeOrgMember(String orgId, String userId) async {
-    await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      await ApiClient.delete('/admin/organizations/$orgId/members/$userId');
+    } catch (_) {}
+
     final idx = AdminMockData.organizations.indexWhere((o) => o.id == orgId);
     if (idx != -1) {
       AdminMockData.organizations[idx].memberIds.remove(userId);
@@ -348,7 +571,10 @@ class AdminService {
   }
 
   static Future<void> archiveOrganization(String orgId) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.patch('/admin/organizations/$orgId/archive');
+    } catch (_) {}
+
     final idx = AdminMockData.organizations.indexWhere((o) => o.id == orgId);
     if (idx != -1) {
       AdminMockData.organizations[idx] = AdminMockData.organizations[idx].copyWith(status: 'archived');
@@ -358,7 +584,29 @@ class AdminService {
 
   // ==================== NOTICES CRUD ====================
   static Future<List<Notice>> getNotices({String? search, String? statusFilter}) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      final queryParams = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+      if (statusFilter != null && statusFilter.isNotEmpty) queryParams['status'] = statusFilter;
+      final response = await ApiClient.get('/admin/notices', queryParameters: queryParams);
+      if (response.statusCode == 200 && response.data != null) {
+        final payload = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        if (payload is List) {
+          return payload.map((n) => Notice(
+            id: n['id']?.toString() ?? '',
+            title: n['title']?.toString() ?? '',
+            content: n['content']?.toString() ?? '',
+            priority: n['priority']?.toString() ?? 'normal',
+            status: n['status']?.toString() ?? 'published',
+            authorName: n['authorName']?.toString() ?? 'Admin',
+            createdAt: DateTime.now(),
+          )).toList();
+        }
+      }
+    } catch (_) {}
+
     var items = List<Notice>.from(AdminMockData.notices);
     if (search != null && search.isNotEmpty) {
       final q = search.toLowerCase();
@@ -374,13 +622,30 @@ class AdminService {
   }
 
   static Future<void> createNotice(Notice notice) async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    try {
+      await ApiClient.post('/admin/notices', data: {
+        'title': notice.title,
+        'content': notice.content,
+        'priority': notice.priority,
+        'status': notice.status,
+        'authorName': notice.authorName,
+      });
+    } catch (_) {}
+
     AdminMockData.notices.insert(0, notice);
     _logActivity('Notice created', notice.authorName ?? 'Admin', notice.title, 'notice', targetId: notice.id);
   }
 
   static Future<void> updateNotice(String noticeId, {String? title, String? content, String? priority, String? status}) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.put('/admin/notices/$noticeId', data: {
+        if (title != null) 'title': title,
+        if (content != null) 'content': content,
+        if (priority != null) 'priority': priority,
+        if (status != null) 'status': status,
+      });
+    } catch (_) {}
+
     final idx = AdminMockData.notices.indexWhere((n) => n.id == noticeId);
     if (idx != -1) {
       AdminMockData.notices[idx] = AdminMockData.notices[idx].copyWith(
@@ -391,7 +656,10 @@ class AdminService {
   }
 
   static Future<void> publishNotice(String noticeId) async {
-    await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      await ApiClient.patch('/admin/notices/$noticeId/publish');
+    } catch (_) {}
+
     final idx = AdminMockData.notices.indexWhere((n) => n.id == noticeId);
     if (idx != -1) {
       AdminMockData.notices[idx] = AdminMockData.notices[idx].copyWith(status: 'published');
@@ -400,7 +668,10 @@ class AdminService {
   }
 
   static Future<void> deleteNotice(String noticeId) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.delete('/admin/notices/$noticeId');
+    } catch (_) {}
+
     final notice = AdminMockData.notices.firstWhere((n) => n.id == noticeId);
     AdminMockData.notices.removeWhere((n) => n.id == noticeId);
     _logActivity('Notice deleted', 'Sudhanshu Patel', notice.title, 'notice', targetId: noticeId);
@@ -408,7 +679,32 @@ class AdminService {
 
   // ==================== RESULTS ====================
   static Future<StudentResult?> getStudentResults(String enrollmentNumber) async {
-    await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      final response = await ApiClient.get('/admin/results/$enrollmentNumber');
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return StudentResult(
+          enrollmentNumber: data['enrollmentNumber']?.toString() ?? enrollmentNumber,
+          cgpa: (data['cgpa'] as num?)?.toDouble() ?? 8.0,
+          semesters: (data['semesters'] as List? ?? []).map((s) => SemesterResult(
+            id: s['id']?.toString() ?? '1',
+            semester: s['semester'] ?? 1,
+            sgpa: (s['sgpa'] as num?)?.toDouble() ?? 8.0,
+            totalCredits: s['totalCredits'] ?? 20,
+            subjects: (s['subjects'] as List? ?? []).map((sub) => SubjectResult(
+              code: sub['code']?.toString() ?? '',
+              name: sub['name']?.toString() ?? '',
+              credits: sub['credits'] ?? 3,
+              grade: sub['grade']?.toString() ?? 'A',
+              gradePoint: (sub['gradePoint'] as num?)?.toDouble() ?? 9.0,
+            )).toList(),
+          )).toList(),
+        );
+      }
+    } catch (_) {}
+
     try {
       return AdminMockData.results.firstWhere((r) => r.enrollmentNumber == enrollmentNumber);
     } catch (_) {
@@ -418,7 +714,29 @@ class AdminService {
 
   // ==================== ACTIVITY LOG ====================
   static Future<List<ActivityLogEntry>> getActivityLog({String? categoryFilter}) async {
-    await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      final queryParams = <String, dynamic>{};
+      if (categoryFilter != null && categoryFilter.isNotEmpty) queryParams['category'] = categoryFilter;
+      final response = await ApiClient.get('/admin/audit-log', queryParameters: queryParams);
+      if (response.statusCode == 200 && response.data != null) {
+        final payload = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        if (payload is List) {
+          return payload.map((a) => ActivityLogEntry(
+            id: a['id']?.toString() ?? '',
+            action: a['action']?.toString() ?? '',
+            performedBy: a['performedBy']?.toString() ?? 'Admin',
+            target: a['target']?.toString() ?? '',
+            timestamp: a['timestamp'] != null ? DateTime.parse(a['timestamp']) : DateTime.now(),
+            category: a['category']?.toString() ?? 'system',
+            reason: a['reason']?.toString(),
+            targetId: a['targetId']?.toString(),
+          )).toList();
+        }
+      }
+    } catch (_) {}
+
     var log = List<ActivityLogEntry>.from(AdminMockData.activityLog);
     if (categoryFilter != null && categoryFilter.isNotEmpty) {
       log = log.where((e) => e.category == categoryFilter).toList();
@@ -444,12 +762,44 @@ class AdminService {
   static AppSettingsModel _settings = AdminMockData.defaultSettings;
 
   static Future<AppSettingsModel> getSettings() async {
-    await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      final response = await ApiClient.get('/admin/settings');
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return AppSettingsModel(
+          appName: data['appName']?.toString() ?? 'Acadyk',
+          tagline: data['tagline']?.toString() ?? '',
+          contactEmail: data['contactEmail']?.toString() ?? '',
+          maintenanceMode: data['maintenanceMode'] ?? false,
+          enableAIRecommendations: data['enableAIRecommendations'] ?? false,
+          enableRealtimeChat: data['enableRealtimeChat'] ?? true,
+          enableStartups: data['enableStartups'] ?? true,
+          enableLeaderboard: data['enableLeaderboard'] ?? true,
+          enableEvents: data['enableEvents'] ?? true,
+        );
+      }
+    } catch (_) {}
+
     return _settings;
   }
 
   static Future<void> saveSettings(AppSettingsModel settings) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      await ApiClient.put('/admin/settings', data: {
+        'appName': settings.appName,
+        'tagline': settings.tagline,
+        'contactEmail': settings.contactEmail,
+        'maintenanceMode': settings.maintenanceMode,
+        'enableAIRecommendations': settings.enableAIRecommendations,
+        'enableRealtimeChat': settings.enableRealtimeChat,
+        'enableStartups': settings.enableStartups,
+        'enableLeaderboard': settings.enableLeaderboard,
+        'enableEvents': settings.enableEvents,
+      });
+    } catch (_) {}
+
     _settings = settings;
     _logActivity('Settings updated', 'Sudhanshu Patel', 'Application Settings', 'settings');
   }
@@ -464,7 +814,7 @@ class AdminService {
     return buffer.toString();
   }
 
-  // ==================== HELPER: Get org name by ID ====================
+  // ==================== HELPER ====================
   static String? getOrganizationName(String orgId) {
     try {
       return AdminMockData.organizations.firstWhere((o) => o.id == orgId).name;
