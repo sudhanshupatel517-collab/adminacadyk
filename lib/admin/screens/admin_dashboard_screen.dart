@@ -108,30 +108,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildStatGrid(dynamic stats, bool isDark, double width) {
+    final isMobile = width < AdminBreakpoints.mobile;
     final cards = [
       AdminStatCard(
         title: 'Total Users', value: '${stats.totalUsers}',
         icon: Icons.people_alt_rounded,
         iconColor: isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0),
-        subtitle: '${stats.totalStudents} students · ${stats.totalFaculty} faculty',
+        subtitle: isMobile ? '${stats.totalStudents} st · ${stats.totalFaculty} fac' : '${stats.totalStudents} students · ${stats.totalFaculty} faculty',
       ),
       AdminStatCard(
         title: 'Active Users', value: '${stats.activeUsers}',
         icon: Icons.person_rounded,
         iconColor: const Color(0xFF00BA7C),
-        subtitle: '${((stats.activeUsers / (stats.totalUsers > 0 ? stats.totalUsers : 1)) * 100).toStringAsFixed(0)}% active rate',
+        subtitle: '${((stats.activeUsers / (stats.totalUsers > 0 ? stats.totalUsers : 1)) * 100).toStringAsFixed(0)}% active',
       ),
       AdminStatCard(
         title: 'Campus Events', value: '${stats.totalEvents}',
         icon: Icons.event_rounded,
         iconColor: isDark ? const Color(0xFFA5D6A7) : const Color(0xFF2E7D32),
-        subtitle: 'Hackathons & workshops',
+        subtitle: isMobile ? 'Active' : 'Hackathons & workshops',
       ),
       AdminStatCard(
         title: 'Clubs & Teams', value: '${stats.totalOrganizations}',
         icon: Icons.groups_rounded,
         iconColor: isDark ? const Color(0xFFCE93D8) : const Color(0xFF7B1FA2),
-        subtitle: '${stats.totalClubs} clubs active',
+        subtitle: '${stats.totalClubs} clubs',
       ),
     ];
 
@@ -146,7 +147,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       childAspectRatio = 1.7;
     } else {
       crossAxisCount = 2;
-      childAspectRatio = 1.2;
+      childAspectRatio = 1.35;
     }
 
     return GridView.builder(

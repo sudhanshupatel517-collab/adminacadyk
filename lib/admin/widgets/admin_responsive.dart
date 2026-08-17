@@ -69,7 +69,7 @@ class AdminResponsiveGrid extends StatelessWidget {
           childAspectRatio = 1.8;
         } else {
           crossAxisCount = 2; // 2x2 grid on mobile phones!
-          childAspectRatio = 1.25;
+          childAspectRatio = 1.35;
         }
 
         return GridView.builder(
