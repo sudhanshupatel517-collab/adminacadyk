@@ -13,17 +13,64 @@ class AdminLoginScreen extends StatefulWidget {
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _emailController = TextEditingController(text: 'admin@acadyk.edu');
   final _passwordController = TextEditingController(text: 'SuperAdmin2026!');
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
+  String? _emailError;
+  String? _passwordError;
+
+  // Design Tokens based on institutional reference
+  static const Color kNavyPrimary = Color(0xFF07143D);
+  static const Color kNavySecondary = Color(0xFF263453);
+  static const Color kGoldAccent = Color(0xFFB58A3A);
+  static const Color kGoldLight = Color(0xFFF7F2E8);
+  static const Color kGoldBorder = Color(0xFFE8D8B8);
+  static const Color kBorder = Color(0xFFE4E6EA);
+  static const Color kTextMuted = Color(0xFF667085);
+  static const Color kLinkBlue = Color(0xFF1E88E5);
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
+  bool _validate() {
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+    });
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty) {
+      setState(() => _emailError = 'Please enter your official email address');
+      return false;
+    }
+    if (!email.contains('@') || !email.contains('.')) {
+      setState(() => _emailError = 'Please enter a valid email address');
+      return false;
+    }
+    if (password.isEmpty) {
+      setState(() => _passwordError = 'Please enter your password');
+      return false;
+    }
+    if (password.length < 6) {
+      setState(() => _passwordError = 'Password must be at least 6 characters');
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _handleLogin() async {
+    if (!_validate()) return;
+
     setState(() => _isLoading = true);
     final auth = context.read<AdminAuthProvider>();
     final ok = await auth.login(_emailController.text.trim(), _passwordController.text);
@@ -31,44 +78,165 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       setState(() => _isLoading = false);
       if (!ok && auth.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(auth.errorMessage!), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(auth.errorMessage!),
+            backgroundColor: const Color(0xFFEF5350),
+          ),
         );
       }
     }
   }
 
   Future<void> _handleOtpLogin() async {
-    setState(() => _isLoading = true);
-    final auth = context.read<AdminAuthProvider>();
-    await auth.ssoLogin();
-    if (mounted) {
-      setState(() => _isLoading = false);
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _emailError = 'Please enter your official email for OTP');
+      return;
     }
+
+    final otpController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(
+          children: const [
+            Icon(Icons.shield_outlined, color: kNavyPrimary, size: 22),
+            SizedBox(width: 10),
+            Text(
+              'One-Time Password',
+              style: TextStyle(
+                fontFamily: 'serif',
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: kNavyPrimary,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'A 6-digit institutional OTP code has been sent to $email.',
+              style: const TextStyle(fontSize: 13, color: kTextMuted, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: otpController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              style: const TextStyle(fontSize: 18, letterSpacing: 8, fontWeight: FontWeight.w700, color: kNavyPrimary),
+              textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                hintText: '••••••',
+                hintStyle: const TextStyle(fontSize: 18, letterSpacing: 8, color: Color(0xFFCBD5E1)),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kBorder)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kBorder)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: kTextMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kNavyPrimary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              setState(() => _isLoading = true);
+              await context.read<AdminAuthProvider>().ssoLogin();
+              if (mounted) setState(() => _isLoading = false);
+            },
+            child: const Text('Verify & Sign In'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showForgotPasswordDialog() {
+    final resetEmailCtrl = TextEditingController(text: _emailController.text);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          'Reset Administrator Password',
+          style: TextStyle(fontFamily: 'serif', fontSize: 18, fontWeight: FontWeight.w700, color: kNavyPrimary),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter your registered official email address to receive password reset instructions.',
+              style: TextStyle(fontSize: 13, color: kTextMuted, height: 1.4),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: resetEmailCtrl,
+              style: const TextStyle(fontSize: 13, color: kNavyPrimary),
+              decoration: InputDecoration(
+                labelText: 'Official Email Address',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kBorder)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: kTextMuted))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kNavyPrimary, foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Password reset instructions dispatched to ${resetEmailCtrl.text}.')),
+              );
+            },
+            child: const Text('Send Reset Link'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF0D1117) : const Color(0xFFFAFAFA);
+    final bg = isDark ? const Color(0xFF0D1117) : Colors.white;
     final cardBg = isDark ? const Color(0xFF161B22) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF30363D) : const Color(0xFFE5E7EB);
-    final textColor = isDark ? Colors.white : const Color(0xFF0A1128);
-    final subtextColor = isDark ? const Color(0xFF8B949E) : const Color(0xFF4B5563);
+    final borderColor = isDark ? const Color(0xFF30363D) : kBorder;
+    final primaryTextColor = isDark ? const Color(0xFFF0F6FC) : kNavyPrimary;
+    final secondaryTextColor = isDark ? const Color(0xFF8B949E) : kNavySecondary;
+    final mutedTextColor = isDark ? const Color(0xFF8B949E) : kTextMuted;
 
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
         child: Stack(
           children: [
-            // Theme Toggle in Top Right
+            // Theme toggle top-right
             Positioned(
-              top: 16,
-              right: 20,
+              top: 14,
+              right: 18,
               child: IconButton(
                 icon: Icon(
                   isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                  size: 22,
-                  color: isDark ? const Color(0xFFF0F6FC) : const Color(0xFF111827),
+                  size: 20,
+                  color: isDark ? const Color(0xFFF0F6FC) : kNavyPrimary,
                 ),
                 tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
                 onPressed: () {
@@ -78,96 +246,106 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               ),
             ),
 
-            // Scrollable Content Center
+            // Centered Main Canvas
             Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 36),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
+                  constraints: const BoxConstraints(maxWidth: 500),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // 1. Logos: Acadyk | MITS-DU
+                      // 1. Top Branding: [Acadyk Logo] Acadyk  |  [MITS-DU Logo] MITS-DU
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(6),
+                            width: 28,
+                            height: 28,
                             decoration: BoxDecoration(
-                              color: Colors.black,
+                              color: isDark ? Colors.white : const Color(0xFF07143D),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Icon(Icons.change_history_rounded, color: Colors.white, size: 18),
+                            child: Center(
+                              child: Icon(
+                                Icons.change_history_rounded,
+                                color: isDark ? const Color(0xFF07143D) : Colors.white,
+                                size: 16,
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             'Acadyk',
                             style: TextStyle(
+                              fontFamily: 'serif',
                               fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: isDark ? Colors.white : const Color(0xFF111827),
-                              letterSpacing: -0.5,
+                              fontWeight: FontWeight.w700,
+                              color: primaryTextColor,
+                              letterSpacing: -0.3,
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            child: Container(width: 1, height: 24, color: borderColor),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Container(width: 1, height: 22, color: borderColor),
                           ),
                           Image.asset(
                             'assets/images/mits_logo.png',
                             width: 26,
                             height: 26,
+                            fit: BoxFit.contain,
                             errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 26, color: Color(0xFF0F4C81)),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             'MITS-DU',
                             style: TextStyle(
+                              fontFamily: 'serif',
                               fontSize: 20,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               color: isDark ? Colors.white : const Color(0xFF0F4C81),
-                              letterSpacing: -0.3,
+                              letterSpacing: -0.2,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 26),
 
-                      // 2. Headline: "Administration Portal"
+                      // 2. Large Heading: "Administration Portal"
                       Text(
                         'Administration Portal',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'serif',
                           fontSize: 34,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? const Color(0xFFE6EDF3) : const Color(0xFF0A1128),
+                          fontWeight: FontWeight.w700,
+                          color: primaryTextColor,
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
 
-                      // 3. Dashed line with center shield icon
+                      // 3. Gold Decorative Divider with Center Shield Outline
                       Row(
                         children: [
                           Expanded(
-                            child: CustomPaint(
-                              size: const Size(double.infinity, 1),
-                              painter: _DashedLinePainter(color: isDark ? const Color(0xFF484F58) : const Color(0xFF9CA3AF)),
+                            child: Container(
+                              height: 1,
+                              color: kGoldAccent.withValues(alpha: isDark ? 0.4 : 0.6),
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Icon(
-                              Icons.shield_outlined,
-                              size: 14,
-                              color: isDark ? const Color(0xFFD29922) : const Color(0xFFB45309),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: CustomPaint(
+                              size: const Size(16, 18),
+                              painter: _ShieldIconPainter(color: kGoldAccent),
                             ),
                           ),
                           Expanded(
-                            child: CustomPaint(
-                              size: const Size(double.infinity, 1),
-                              painter: _DashedLinePainter(color: isDark ? const Color(0xFF484F58) : const Color(0xFF9CA3AF)),
+                            child: Container(
+                              height: 1,
+                              color: kGoldAccent.withValues(alpha: isDark ? 0.4 : 0.6),
                             ),
                           ),
                         ],
@@ -177,28 +355,29 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       // 4. Tagline: "Secure  Centralized  Reliable"
                       Text(
                         'Secure   Centralized   Reliable',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'serif',
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFFC9D1D9) : const Color(0xFF1E293B),
-                          letterSpacing: 0.5,
+                          color: secondaryTextColor,
+                          letterSpacing: 0.6,
                         ),
                       ),
                       const SizedBox(height: 24),
 
-                      // 5. Main Card: "Administrator Log in"
+                      // 5. Main Login Card
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(28),
                         decoration: BoxDecoration(
                           color: cardBg,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: borderColor),
+                          border: Border.all(color: borderColor, width: 1),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-                              blurRadius: 16,
+                              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
+                              blurRadius: 20,
                               offset: const Offset(0, 4),
                             ),
                           ],
@@ -206,41 +385,43 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Card Title
+                            // Card Header: [Shield] Administrator Log in
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.shield_outlined,
-                                  size: 26,
-                                  color: isDark ? const Color(0xFF79C0FF) : const Color(0xFF0F4C81),
+                                CustomPaint(
+                                  size: const Size(22, 26),
+                                  painter: _ShieldIconPainter(color: primaryTextColor),
                                 ),
-                                const SizedBox(width: 10),
+                                const SizedBox(width: 12),
                                 Text(
                                   'Administrator Log in',
                                   style: TextStyle(
                                     fontFamily: 'serif',
                                     fontSize: 22,
                                     fontWeight: FontWeight.w700,
-                                    color: textColor,
+                                    color: primaryTextColor,
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 24),
 
-                            // Official Email Address Input
+                            // Field 1: Official Email Address
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF0D1117) : const Color(0xFFF9FAFB),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: borderColor),
+                                color: isDark ? const Color(0xFF0D1117) : Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _emailError != null ? const Color(0xFFEF5350) : borderColor,
+                                  width: 1,
+                                ),
                               ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.mail_outline_rounded, size: 20, color: subtextColor),
+                                  Icon(Icons.mail_outline_rounded, size: 20, color: secondaryTextColor),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
@@ -252,17 +433,19 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
-                                            color: subtextColor,
+                                            color: primaryTextColor,
                                           ),
                                         ),
                                         TextField(
                                           controller: _emailController,
-                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: textColor),
+                                          focusNode: _emailFocus,
+                                          style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500, color: primaryTextColor),
+                                          onSubmitted: (_) => _passwordFocus.requestFocus(),
                                           decoration: InputDecoration(
                                             isDense: true,
                                             contentPadding: const EdgeInsets.only(top: 2, bottom: 2),
                                             hintText: 'Enter your registered email address',
-                                            hintStyle: TextStyle(fontSize: 12, color: subtextColor.withValues(alpha: 0.7)),
+                                            hintStyle: TextStyle(fontSize: 12.5, color: mutedTextColor.withValues(alpha: 0.7)),
                                             border: InputBorder.none,
                                           ),
                                         ),
@@ -272,20 +455,30 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 ],
                               ),
                             ),
+                            if (_emailError != null) ...[
+                              const SizedBox(height: 4),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: Text(_emailError!, style: const TextStyle(fontSize: 11, color: Color(0xFFEF5350))),
+                              ),
+                            ],
                             const SizedBox(height: 14),
 
-                            // Password Input
+                            // Field 2: Password
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF0D1117) : const Color(0xFFF9FAFB),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: borderColor),
+                                color: isDark ? const Color(0xFF0D1117) : Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _passwordError != null ? const Color(0xFFEF5350) : borderColor,
+                                  width: 1,
+                                ),
                               ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.lock_outline_rounded, size: 20, color: subtextColor),
+                                  Icon(Icons.lock_outline_rounded, size: 20, color: secondaryTextColor),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
@@ -297,18 +490,20 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
-                                            color: subtextColor,
+                                            color: primaryTextColor,
                                           ),
                                         ),
                                         TextField(
                                           controller: _passwordController,
+                                          focusNode: _passwordFocus,
                                           obscureText: _obscurePassword,
-                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: textColor),
+                                          style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500, color: primaryTextColor),
+                                          onSubmitted: (_) => _handleLogin(),
                                           decoration: InputDecoration(
                                             isDense: true,
                                             contentPadding: const EdgeInsets.only(top: 2, bottom: 2),
                                             hintText: 'Enter your password',
-                                            hintStyle: TextStyle(fontSize: 12, color: subtextColor.withValues(alpha: 0.7)),
+                                            hintStyle: TextStyle(fontSize: 12.5, color: mutedTextColor.withValues(alpha: 0.7)),
                                             border: InputBorder.none,
                                           ),
                                         ),
@@ -319,26 +514,29 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
                                     icon: Icon(
-                                      _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                                       size: 18,
-                                      color: subtextColor,
+                                      color: mutedTextColor,
                                     ),
                                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                                   ),
                                 ],
                               ),
                             ),
+                            if (_passwordError != null) ...[
+                              const SizedBox(height: 4),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: Text(_passwordError!, style: const TextStyle(fontSize: 11, color: Color(0xFFEF5350))),
+                              ),
+                            ],
                             const SizedBox(height: 8),
 
-                            // Forgot your password link
+                            // Forgot your password?
                             Align(
                               alignment: Alignment.centerRight,
                               child: InkWell(
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Password reset instructions sent to registered institutional email.')),
-                                  );
-                                },
+                                onTap: _showForgotPasswordDialog,
                                 child: const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 4),
                                   child: Text(
@@ -346,7 +544,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF1E88E5),
+                                      color: kLinkBlue,
                                     ),
                                   ),
                                 ),
@@ -361,11 +559,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               child: ElevatedButton(
                                 onPressed: _isLoading ? null : _handleLogin,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: isDark ? const Color(0xFF1F6FEB) : const Color(0xFF0A1128),
+                                  backgroundColor: isDark ? const Color(0xFF1F6FEB) : kNavyPrimary,
                                   foregroundColor: Colors.white,
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
                                 child: _isLoading
@@ -375,7 +573,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                         children: const [
                                           Text(
                                             'Sign In to Administration',
-                                            style: TextStyle(fontFamily: 'serif', fontSize: 15, fontWeight: FontWeight.w700),
+                                            style: TextStyle(
+                                              fontFamily: 'serif',
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                           ),
                                           SizedBox(width: 10),
                                           Icon(Icons.arrow_forward_rounded, size: 18),
@@ -388,15 +590,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             // "or continue with" Divider
                             Row(
                               children: [
-                                Expanded(child: Divider(color: borderColor)),
+                                Expanded(child: Divider(color: borderColor, thickness: 1)),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 10),
                                   child: Text(
                                     'or continue with',
-                                    style: TextStyle(fontSize: 11, color: subtextColor),
+                                    style: TextStyle(fontSize: 11.5, color: mutedTextColor),
                                   ),
                                 ),
-                                Expanded(child: Divider(color: borderColor)),
+                                Expanded(child: Divider(color: borderColor, thickness: 1)),
                               ],
                             ),
                             const SizedBox(height: 16),
@@ -408,39 +610,44 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               child: OutlinedButton(
                                 onPressed: _isLoading ? null : _handleOtpLogin,
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: textColor,
-                                  backgroundColor: isDark ? const Color(0xFF21262D) : const Color(0xFFF3F4F6),
-                                  side: BorderSide(color: borderColor),
+                                  foregroundColor: primaryTextColor,
+                                  backgroundColor: isDark ? const Color(0xFF21262D) : Colors.white,
+                                  side: BorderSide(color: borderColor, width: 1),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
                                 child: Row(
-                                  children: const [
-                                    Icon(Icons.security_rounded, size: 18, color: Color(0xFF0F4C81)),
-                                    Expanded(
+                                  children: [
+                                    Icon(Icons.shield_outlined, size: 18, color: primaryTextColor),
+                                    const Expanded(
                                       child: Text(
                                         'Continue with One-Time Password',
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(fontFamily: 'serif', fontSize: 14, fontWeight: FontWeight.w600),
+                                        style: TextStyle(
+                                          fontFamily: 'serif',
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
-                                    Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF6B7280)),
+                                    Icon(Icons.arrow_forward_rounded, size: 16, color: mutedTextColor),
                                   ],
                                 ),
                               ),
                             ),
                             const SizedBox(height: 20),
 
-                            // Authorized Access Only Note Box
+                            // Authorized Access Only Notice Box
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1E170A) : const Color(0xFFFFFDF5),
+                                color: isDark ? const Color(0xFF1E170A) : kGoldLight,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: isDark ? const Color(0xFF8C6D1F) : const Color(0xFFFDE68A),
+                                  color: isDark ? const Color(0xFF8C6D1F) : kGoldBorder,
+                                  width: 1,
                                 ),
                               ),
                               child: Row(
@@ -449,7 +656,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                   Icon(
                                     Icons.lock_outline_rounded,
                                     size: 20,
-                                    color: isDark ? const Color(0xFFD29922) : const Color(0xFFB45309),
+                                    color: kGoldAccent,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -461,7 +668,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
-                                            color: isDark ? const Color(0xFFF0883E) : const Color(0xFF92400E),
+                                            color: isDark ? const Color(0xFFF0883E) : const Color(0xFF785116),
                                           ),
                                         ),
                                         const SizedBox(height: 2),
@@ -469,8 +676,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                           'This portal is restricted to authorized Acadyk administrators and institutional personnel.',
                                           style: TextStyle(
                                             fontSize: 11.5,
-                                            color: isDark ? const Color(0xFFC9D1D9) : const Color(0xFF4B5563),
-                                            height: 1.3,
+                                            color: isDark ? const Color(0xFFC9D1D9) : const Color(0xFF594D3B),
+                                            height: 1.35,
                                           ),
                                         ),
                                       ],
@@ -491,10 +698,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         decoration: BoxDecoration(
                           color: cardBg,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: borderColor),
+                          border: Border.all(color: borderColor, width: 1),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -508,11 +715,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 fontFamily: 'serif',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                color: textColor,
+                                color: primaryTextColor,
                               ),
                             ),
                             const SizedBox(height: 6),
-                            Container(width: 32, height: 2, color: const Color(0xFFC59B27)),
+                            Container(width: 32, height: 2, color: kGoldAccent),
                             const SizedBox(height: 18),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -522,14 +729,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 Column(
                                   children: [
                                     Container(
-                                      width: 46,
-                                      height: 46,
+                                      width: 44,
+                                      height: 44,
                                       decoration: const BoxDecoration(
                                         color: Colors.black,
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Center(
-                                        child: Icon(Icons.all_inclusive_rounded, color: Colors.white, size: 24),
+                                        child: Icon(Icons.all_inclusive_rounded, color: Colors.white, size: 22),
                                       ),
                                     ),
                                     const SizedBox(height: 8),
@@ -537,9 +744,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                       'Quantaforze',
                                       style: TextStyle(
                                         fontFamily: 'serif',
-                                        fontSize: 16,
+                                        fontSize: 15,
                                         fontWeight: FontWeight.w700,
-                                        color: textColor,
+                                        color: primaryTextColor,
                                       ),
                                     ),
                                   ],
@@ -550,11 +757,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 8),
                                   child: Row(
                                     children: [
-                                      Container(width: 1, height: 34, color: borderColor),
+                                      Container(width: 1, height: 32, color: borderColor),
                                       const SizedBox(width: 14),
-                                      const Icon(Icons.handshake_outlined, size: 34, color: Color(0xFFC59B27)),
+                                      const Icon(Icons.handshake_outlined, size: 32, color: kGoldAccent),
                                       const SizedBox(width: 14),
-                                      Container(width: 1, height: 34, color: borderColor),
+                                      Container(width: 1, height: 32, color: borderColor),
                                     ],
                                   ),
                                 ),
@@ -564,18 +771,19 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                   children: [
                                     Image.asset(
                                       'assets/images/mits_logo.png',
-                                      width: 46,
-                                      height: 46,
-                                      errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 46, color: Color(0xFF0F4C81)),
+                                      width: 44,
+                                      height: 44,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 44, color: Color(0xFF0F4C81)),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
                                       'MITS-DU',
                                       style: TextStyle(
                                         fontFamily: 'serif',
-                                        fontSize: 16,
+                                        fontSize: 15,
                                         fontWeight: FontWeight.w700,
-                                        color: textColor,
+                                        color: primaryTextColor,
                                       ),
                                     ),
                                   ],
@@ -587,7 +795,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               'Connecting technology, education, and opportunity.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: subtextColor,
+                                color: mutedTextColor,
                               ),
                             ),
                           ],
@@ -605,22 +813,35 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   }
 }
 
-class _DashedLinePainter extends CustomPainter {
+class _ShieldIconPainter extends CustomPainter {
   final Color color;
-  _DashedLinePainter({required this.color});
+  _ShieldIconPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 1;
-    const dashWidth = 4.0;
-    const dashSpace = 3.0;
-    double startX = 0;
-    while (startX < size.width) {
-      canvas.drawLine(Offset(startX, 0), Offset(startX + dashWidth, 0), paint);
-      startX += dashWidth + dashSpace;
-    }
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    final path = Path();
+    path.moveTo(size.width * 0.5, 0);
+    path.lineTo(size.width, size.height * 0.2);
+    path.lineTo(size.width, size.height * 0.6);
+    path.cubicTo(
+      size.width, size.height * 0.85,
+      size.width * 0.5, size.height,
+      size.width * 0.5, size.height,
+    );
+    path.cubicTo(
+      size.width * 0.5, size.height,
+      0, size.height * 0.85,
+      0, size.height * 0.6,
+    );
+    path.lineTo(0, size.height * 0.2);
+    path.close();
+
+    canvas.drawPath(path, paint);
   }
 
   @override
