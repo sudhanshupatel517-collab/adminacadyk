@@ -219,7 +219,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     final bg = isDark ? const Color(0xFF0D1117) : Colors.white;
     final cardBg = isDark ? const Color(0xFF161B22) : Colors.white;
     final borderColor = isDark ? const Color(0xFF30363D) : kBorder;
-    // Same color for both Acadyk and MITS-DU
     final brandingTextColor = isDark ? const Color(0xFFF0F6FC) : kNavyPrimary;
     final primaryTextColor = isDark ? const Color(0xFFF0F6FC) : kNavyPrimary;
     final secondaryTextColor = isDark ? const Color(0xFF8B949E) : kNavySecondary;
@@ -232,12 +231,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           children: [
             // Theme toggle top-right
             Positioned(
-              top: 14,
-              right: 18,
+              top: 16,
+              right: 20,
               child: IconButton(
                 icon: Icon(
                   isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                  size: 20,
+                  size: 22,
                   color: isDark ? const Color(0xFFF0F6FC) : kNavyPrimary,
                 ),
                 tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
@@ -251,13 +250,13 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
             // Centered Main Canvas
             Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 490),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // 1. Top Branding: [lagacy.png] Acadyk  |  [mitslog.png] MITS-DU (Same Color)
+                      // 1. Top Branding: [lagacy.png] Acadyk  |  [mitslog.png] MITS-DU (Same Deep Navy Color)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -266,12 +265,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             borderRadius: BorderRadius.circular(6),
                             child: Image.asset(
                               'assets/images/lagacy.png',
-                              width: 28,
-                              height: 28,
+                              width: 30,
+                              height: 30,
                               fit: BoxFit.contain,
                               errorBuilder: (_, __, ___) => Container(
-                                width: 28,
-                                height: 28,
+                                width: 30,
+                                height: 30,
                                 decoration: BoxDecoration(
                                   color: kNavyPrimary,
                                   borderRadius: BorderRadius.circular(6),
@@ -280,62 +279,62 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 10),
                           Text(
                             'Acadyk',
                             style: TextStyle(
                               fontFamily: 'serif',
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
                               color: brandingTextColor,
                               letterSpacing: -0.3,
                             ),
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Container(width: 1, height: 22, color: borderColor),
+                            child: Container(width: 1, height: 24, color: borderColor),
                           ),
                           Image.asset(
                             'assets/images/mitslog.png',
-                            width: 26,
-                            height: 26,
+                            width: 28,
+                            height: 28,
                             fit: BoxFit.contain,
                             errorBuilder: (_, __, ___) => Image.asset(
                               'assets/images/mits_logo.png',
-                              width: 26,
-                              height: 26,
+                              width: 28,
+                              height: 28,
                               fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 26, color: kNavyPrimary),
+                              errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 28, color: kNavyPrimary),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 10),
                           Text(
                             'MITS-DU',
                             style: TextStyle(
                               fontFamily: 'serif',
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
                               color: brandingTextColor,
                               letterSpacing: -0.2,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 24),
 
-                      // 2. Large Heading: "Administration Portal"
+                      // 2. Large Heading: "Administration Portal" (Attractive serif typography)
                       Text(
                         'Administration Portal',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'serif',
-                          fontSize: 32,
+                          fontSize: 36,
                           fontWeight: FontWeight.w700,
                           color: primaryTextColor,
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
 
                       // 3. Gold Decorative Divider with Center Shield Outline
                       Row(
@@ -361,7 +360,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
                       // 4. Tagline: "Secure  Centralized  Reliable"
                       Text(
@@ -369,18 +368,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'serif',
-                          fontSize: 14.5,
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: secondaryTextColor,
                           letterSpacing: 0.6,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
 
                       // 5. Main Login Card
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(26),
                         decoration: BoxDecoration(
                           color: cardBg,
                           borderRadius: BorderRadius.circular(16),
@@ -402,25 +401,25 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               children: [
                                 CustomPaint(
                                   size: const Size(22, 26),
-                                  painter: _ShieldIconPainter(color: primaryTextColor),
+                                  painter: _ShieldFilledPainter(color: primaryTextColor),
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
                                   'Administrator Log in',
                                   style: TextStyle(
                                     fontFamily: 'serif',
-                                    fontSize: 21,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.w700,
                                     color: primaryTextColor,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 22),
 
                             // Field 1: Official Email Address
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
                                 color: isDark ? const Color(0xFF0D1117) : Colors.white,
                                 borderRadius: BorderRadius.circular(8),
@@ -477,7 +476,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
                             // Field 2: Password
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
                                 color: isDark ? const Color(0xFF0D1117) : Colors.white,
                                 borderRadius: BorderRadius.circular(8),
@@ -561,12 +560,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
 
                             // Sign In to Administration Button
                             SizedBox(
                               width: double.infinity,
-                              height: 46,
+                              height: 48,
                               child: ElevatedButton(
                                 onPressed: _isLoading ? null : _handleLogin,
                                 style: ElevatedButton.styleFrom(
@@ -596,7 +595,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                       ),
                               ),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
 
                             // "or continue with" Divider
                             Row(
@@ -612,12 +611,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 Expanded(child: Divider(color: borderColor, thickness: 1)),
                               ],
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
 
-                            // Continue with One-Time Password Button
+                            // Continue with One-Time Password Button (Shield with lock inside + Right Arrow)
                             SizedBox(
                               width: double.infinity,
-                              height: 44,
+                              height: 46,
                               child: OutlinedButton(
                                 onPressed: _isLoading ? null : _handleOtpLogin,
                                 style: OutlinedButton.styleFrom(
@@ -627,27 +626,37 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.shield_outlined, size: 18, color: primaryTextColor),
+                                    Container(
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: CustomPaint(
+                                        size: const Size(18, 20),
+                                        painter: _ShieldWithLockPainter(color: primaryTextColor),
+                                      ),
+                                    ),
                                     const Expanded(
                                       child: Text(
                                         'Continue with One-Time Password',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontFamily: 'serif',
-                                          fontSize: 13.5,
+                                          fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
-                                    Icon(Icons.arrow_forward_rounded, size: 16, color: mutedTextColor),
+                                    Icon(Icons.arrow_forward_rounded, size: 16, color: primaryTextColor),
                                   ],
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 18),
 
                             // Authorized Access Only Notice Box
                             Container(
@@ -700,142 +709,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 18),
-
-                      // 6. Bottom Card: Built on Institutional Collaboration (Centralized yellow line + Handshake + qantaforzelogo.jpg)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: borderColor, width: 1),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Built on Institutional Collaboration',
-                              style: TextStyle(
-                                fontFamily: 'serif',
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w700,
-                                color: primaryTextColor,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            // Centralized Yellow Line
-                            Center(
-                              child: Container(width: 32, height: 2, color: kGoldAccent),
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // Left: Quantaforze (qantaforzelogo.jpg / circular asset + text in same navy color)
-                                Column(
-                                  children: [
-                                    ClipOval(
-                                      child: Image.asset(
-                                        'assets/images/qantaforzelogo.jpg',
-                                        width: 38,
-                                        height: 38,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
-                                          width: 38,
-                                          height: 38,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.black,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Center(
-                                            child: Icon(Icons.all_inclusive_rounded, color: Colors.white, size: 20),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Quantaforze',
-                                      style: TextStyle(
-                                        fontFamily: 'serif',
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: primaryTextColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                // Center: Handshake pic centered between two vertical grey lines
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Container(width: 1, height: 32, color: borderColor),
-                                      const SizedBox(width: 14),
-                                      Icon(
-                                        Icons.handshake_outlined,
-                                        size: 32,
-                                        color: kGoldAccent,
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Container(width: 1, height: 32, color: borderColor),
-                                    ],
-                                  ),
-                                ),
-
-                                // Right: MITS-DU (mitslog.png + text in same navy color)
-                                Column(
-                                  children: [
-                                    Image.asset(
-                                      'assets/images/mitslog.png',
-                                      width: 38,
-                                      height: 38,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) => Image.asset(
-                                        'assets/images/mits_logo.png',
-                                        width: 38,
-                                        height: 38,
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 38, color: kNavyPrimary),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'MITS-DU',
-                                      style: TextStyle(
-                                        fontFamily: 'serif',
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: primaryTextColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Connecting technology, education, and opportunity.',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                color: mutedTextColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -877,6 +750,127 @@ class _ShieldIconPainter extends CustomPainter {
     path.close();
 
     canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ShieldFilledPainter extends CustomPainter {
+  final Color color;
+  _ShieldFilledPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Outer shield stroke
+    final strokePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+
+    final path = Path();
+    path.moveTo(size.width * 0.5, 0);
+    path.lineTo(size.width, size.height * 0.2);
+    path.lineTo(size.width, size.height * 0.6);
+    path.cubicTo(
+      size.width, size.height * 0.85,
+      size.width * 0.5, size.height,
+      size.width * 0.5, size.height,
+    );
+    path.cubicTo(
+      size.width * 0.5, size.height,
+      0, size.height * 0.85,
+      0, size.height * 0.6,
+    );
+    path.lineTo(0, size.height * 0.2);
+    path.close();
+
+    canvas.drawPath(path, strokePaint);
+
+    // Inner filled shield
+    final fillPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final innerPath = Path();
+    innerPath.moveTo(size.width * 0.5, size.height * 0.16);
+    innerPath.lineTo(size.width * 0.82, size.height * 0.3);
+    innerPath.lineTo(size.width * 0.82, size.height * 0.58);
+    innerPath.cubicTo(
+      size.width * 0.82, size.height * 0.76,
+      size.width * 0.5, size.height * 0.88,
+      size.width * 0.5, size.height * 0.88,
+    );
+    innerPath.cubicTo(
+      size.width * 0.5, size.height * 0.88,
+      size.width * 0.18, size.height * 0.76,
+      size.width * 0.18, size.height * 0.58,
+    );
+    innerPath.lineTo(size.width * 0.18, size.height * 0.3);
+    innerPath.close();
+
+    canvas.drawPath(innerPath, fillPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ShieldWithLockPainter extends CustomPainter {
+  final Color color;
+  _ShieldWithLockPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Outer shield stroke
+    final strokePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+
+    final path = Path();
+    path.moveTo(size.width * 0.5, 0);
+    path.lineTo(size.width, size.height * 0.2);
+    path.lineTo(size.width, size.height * 0.6);
+    path.cubicTo(
+      size.width, size.height * 0.85,
+      size.width * 0.5, size.height,
+      size.width * 0.5, size.height,
+    );
+    path.cubicTo(
+      size.width * 0.5, size.height,
+      0, size.height * 0.85,
+      0, size.height * 0.6,
+    );
+    path.lineTo(0, size.height * 0.2);
+    path.close();
+
+    canvas.drawPath(path, strokePaint);
+
+    // Lock body
+    final lockBodyPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final lockRect = Rect.fromCenter(
+      center: Offset(size.width * 0.5, size.height * 0.6),
+      width: size.width * 0.44,
+      height: size.height * 0.3,
+    );
+    canvas.drawRRect(RRect.fromRectAndRadius(lockRect, const Radius.circular(2)), lockBodyPaint);
+
+    // Lock shackle
+    final shacklePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3;
+
+    final shackleRect = Rect.fromCenter(
+      center: Offset(size.width * 0.5, size.height * 0.44),
+      width: size.width * 0.26,
+      height: size.height * 0.22,
+    );
+    canvas.drawArc(shackleRect, 3.14159, 3.14159, false, shacklePaint);
   }
 
   @override
