@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/admin_models.dart';
 import '../data/admin_service.dart';
-import '../data/admin_mock_data.dart';
 
 enum UserLoadState { initial, loading, loaded, error }
 
@@ -147,7 +146,7 @@ class AdminUsersProvider extends ChangeNotifier {
   }) async {
     try {
       final newUser = ManagedUser(
-        id: AdminMockData.nextUserId(),
+        id: 'usr-${DateTime.now().millisecondsSinceEpoch}',
         fullName: fullName.trim(),
         email: email.trim(),
         role: role,

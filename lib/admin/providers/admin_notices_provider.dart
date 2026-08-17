@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/admin_models.dart';
 import '../data/admin_service.dart';
-import '../data/admin_mock_data.dart';
 
 class AdminNoticesProvider extends ChangeNotifier {
   List<Notice> _notices = [];
@@ -38,7 +37,7 @@ class AdminNoticesProvider extends ChangeNotifier {
   Future<bool> createNotice({required String title, required String content, String priority = 'normal', String? authorName}) async {
     try {
       final notice = Notice(
-        id: AdminMockData.nextNoticeId(),
+        id: 'notice-${DateTime.now().millisecondsSinceEpoch}',
         title: title,
         content: content,
         priority: priority,

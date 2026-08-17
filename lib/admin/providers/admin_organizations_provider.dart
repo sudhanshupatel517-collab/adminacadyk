@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/admin_models.dart';
 import '../data/admin_service.dart';
-import '../data/admin_mock_data.dart';
 
 class AdminOrganizationsProvider extends ChangeNotifier {
   List<Organization> _organizations = [];
@@ -38,7 +37,7 @@ class AdminOrganizationsProvider extends ChangeNotifier {
   Future<bool> createOrganization({required String name, required String type, String? description, String? department}) async {
     try {
       final org = Organization(
-        id: AdminMockData.nextOrgId(),
+        id: 'org-${DateTime.now().millisecondsSinceEpoch}',
         name: name,
         type: type,
         description: description,

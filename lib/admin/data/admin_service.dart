@@ -8,6 +8,43 @@ import '../../core/network/api_client.dart';
 /// it transparently operates on the internal persistent state without interruption.
 class AdminService {
   // -- Authentication --
+  /// Attempts to authenticate against the real backend first.
+  /// Falls back to mock credentials if the backend is unreachable.
+  static Future<AdminAccount?> authenticateAsync(String email, String password) async {
+    try {
+      final response = await ApiClient.post('/auth/login', data: {
+        'email': email,
+        'password': password,
+      });
+      if (response.statusCode == 200 && response.data != null) {
+        final data = ApiClient.extractData(response);
+        if (data != null && data is Map) {
+          // Backend returns AuthResponse with token + user profile
+          final token = data['token']?.toString();
+          if (token != null && token.isNotEmpty) {
+            ApiClient.setAuthToken(token);
+          }
+          final userProfile = data['user'];
+          final roles = data['roles'] is List ? (data['roles'] as List) : [];
+          final bestRole = roles.contains('SUPER_ADMIN') ? 'SUPER_ADMIN'
+              : roles.contains('COLLEGE_ADMIN') ? 'SUPER_ADMIN'
+              : roles.contains('MODERATOR') ? 'EDITOR' : 'VIEWER';
+          return AdminAccount(
+            id: userProfile?['id']?.toString() ?? data['enrollmentNumber']?.toString() ?? '',
+            email: userProfile?['email']?.toString() ?? email,
+            name: userProfile?['fullName']?.toString() ?? email.split('@').first,
+            role: bestRole,
+            avatarUrl: userProfile?['profilePhotoUrl']?.toString(),
+          );
+        }
+      }
+    } catch (_) {}
+
+    // Fallback: try mock credentials for offline/local development
+    return authenticate(email, password);
+  }
+
+  /// Synchronous mock-only authentication (used as fallback).
   static AdminAccount? authenticate(String email, String password) {
     for (int i = 0; i < AdminMockData.adminAccounts.length; i++) {
       if (AdminMockData.adminAccounts[i].email.toLowerCase() == email.toLowerCase() &&
@@ -20,18 +57,56 @@ class AdminService {
 
   // ==================== DASHBOARD ====================
   static Future<DashboardStats> getDashboardStats() async {
+    // Try to build stats from real backend entity counts
+    int totalEvents = 0;
+    int totalClubs = 0;
+    int totalPosts = 0;
+
     try {
-      final response = await ApiClient.get('/admin/dashboard/stats');
-      if (response.statusCode == 200 && response.data != null) {
-        final data = response.data is Map && response.data.containsKey('data')
-            ? response.data['data']
-            : response.data;
-        return DashboardStats.fromJson(Map<String, dynamic>.from(data));
+      final eventsResp = await ApiClient.get('/events', queryParameters: {'page': '0', 'size': '1'});
+      if (eventsResp.statusCode == 200) {
+        final data = ApiClient.extractData(eventsResp);
+        if (data is Map) totalEvents = data['totalElements'] ?? 0;
       }
     } catch (_) {}
 
-    // In-memory fallback
-    await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      final clubsResp = await ApiClient.get('/clubs', queryParameters: {'page': '0', 'size': '1'});
+      if (clubsResp.statusCode == 200) {
+        final data = ApiClient.extractData(clubsResp);
+        if (data is Map) totalClubs = data['totalElements'] ?? 0;
+      }
+    } catch (_) {}
+
+    try {
+      final postsResp = await ApiClient.get('/posts', queryParameters: {'page': '0', 'size': '1'});
+      if (postsResp.statusCode == 200) {
+        final data = ApiClient.extractData(postsResp);
+        if (data is Map) totalPosts = data['totalElements'] ?? 0;
+      }
+    } catch (_) {}
+
+    // If we got any real data, build stats from it
+    if (totalEvents > 0 || totalClubs > 0 || totalPosts > 0) {
+      final users = AdminMockData.users;
+      return DashboardStats(
+        totalUsers: users.length,
+        activeUsers: users.where((u) => u.status == 'active').length,
+        totalPosts: totalPosts > 0 ? totalPosts : AdminMockData.content.length,
+        totalOpportunities: 0,
+        totalClubs: totalClubs > 0 ? totalClubs : AdminMockData.organizations.where((o) => o.type == 'club').length,
+        totalEvents: totalEvents > 0 ? totalEvents : AdminMockData.events.length,
+        pendingReports: AdminMockData.content.where((c) => c.status == 'flagged').length,
+        newUsersToday: 0,
+        totalStudents: users.where((u) => u.role == 'STUDENT').length,
+        totalFaculty: users.where((u) => u.role == 'FACULTY').length,
+        totalOrganizations: totalClubs > 0 ? totalClubs : AdminMockData.organizations.length,
+        totalNotices: AdminMockData.notices.where((n) => n.status == 'published').length,
+        suspendedUsers: users.where((u) => u.status == 'suspended').length,
+      );
+    }
+
+    // Full fallback to mock data
     final users = AdminMockData.users;
     final content = AdminMockData.content;
     final events = AdminMockData.events;
@@ -288,22 +363,70 @@ class AdminService {
   }
 
   // ==================== CONTENT CRUD ====================
+  /// Fetches posts from the real backend GET /posts endpoint.
+  /// The backend returns ApiResponse<PageResponse<PostResponse>>.
   static Future<List<ManagedContent>> getContent({String? search, String? statusFilter}) async {
     try {
-      final queryParams = <String, dynamic>{};
-      if (search != null && search.isNotEmpty) queryParams['search'] = search;
-      if (statusFilter != null && statusFilter.isNotEmpty) queryParams['status'] = statusFilter;
-      final response = await ApiClient.get('/admin/posts', queryParameters: queryParams);
+      final queryParams = <String, dynamic>{'page': '0', 'size': '100'};
+      final response = await ApiClient.get('/posts', queryParameters: queryParams);
       if (response.statusCode == 200 && response.data != null) {
-        final payload = response.data is Map && response.data.containsKey('data')
-            ? response.data['data']
-            : response.data;
-        if (payload is List) {
-          return payload.map((c) => ManagedContent.fromJson(Map<String, dynamic>.from(c))).toList();
+        final data = ApiClient.extractData(response);
+        List? postList;
+        if (data is Map && data.containsKey('content')) {
+          postList = data['content'] as List?;
+        } else if (data is List) {
+          postList = data;
+        }
+
+        if (postList != null) {
+          var items = postList.map((p) {
+            final authorObj = p['author'];
+            String authorName = 'Student';
+            String authorEmail = '';
+            if (authorObj is Map) {
+              authorName = authorObj['fullName']?.toString() ?? 'Student';
+              authorEmail = authorObj['email']?.toString() ?? '';
+            } else if (p['authorName'] != null) {
+              authorName = p['authorName'].toString();
+            }
+
+            final mediaList = p['mediaUrls'] is List ? (p['mediaUrls'] as List) : null;
+            final imageUrl = (mediaList != null && mediaList.isNotEmpty) ? mediaList.first.toString() : p['imageUrl']?.toString();
+
+            return ManagedContent(
+              id: p['id']?.toString() ?? '',
+              authorName: authorName,
+              authorEmail: authorEmail,
+              content: p['content']?.toString() ?? p['text']?.toString() ?? '',
+              postType: p['postType']?.toString() ?? 'general',
+              status: p['status']?.toString() ?? 'published',
+              likeCount: p['likeCount'] ?? p['likesCount'] ?? 0,
+              commentCount: p['commentCount'] ?? p['commentsCount'] ?? 0,
+              reportCount: p['reportCount'] ?? 0,
+              createdAt: p['createdAt'] != null
+                  ? (DateTime.tryParse(p['createdAt'].toString()) ?? DateTime.now())
+                  : DateTime.now(),
+              imageUrl: imageUrl,
+              organizationId: p['clubId']?.toString() ?? p['organizationId']?.toString(),
+            );
+          }).toList();
+
+          if (search != null && search.isNotEmpty) {
+            final q = search.toLowerCase();
+            items = items.where((c) =>
+              c.content.toLowerCase().contains(q) ||
+              c.authorName.toLowerCase().contains(q)
+            ).toList();
+          }
+          if (statusFilter != null && statusFilter.isNotEmpty) {
+            items = items.where((c) => c.status == statusFilter).toList();
+          }
+          return items;
         }
       }
     } catch (_) {}
 
+    // Fallback to mock data
     var items = List<ManagedContent>.from(AdminMockData.content);
     if (search != null && search.isNotEmpty) {
       final q = search.toLowerCase();
@@ -320,7 +443,7 @@ class AdminService {
 
   static Future<void> updateContentStatus(String contentId, String newStatus) async {
     try {
-      await ApiClient.patch('/admin/posts/$contentId/status', data: {'status': newStatus});
+      await ApiClient.put('/posts/$contentId', data: {'status': newStatus});
     } catch (_) {}
 
     final idx = AdminMockData.content.indexWhere((c) => c.id == contentId);
@@ -333,43 +456,65 @@ class AdminService {
 
   static Future<void> deleteContent(String contentId) async {
     try {
-      await ApiClient.delete('/admin/posts/$contentId');
+      await ApiClient.delete('/posts/$contentId');
+      _logActivity('Content deleted', 'Sudhanshu Patel', 'Post $contentId', 'content', targetId: contentId);
+      return;
     } catch (_) {}
 
-    _logActivity('Content deleted', 'Sudhanshu Patel', 'Post $contentId', 'content', targetId: contentId);
+    _logActivity('Content deleted (offline)', 'Sudhanshu Patel', 'Post $contentId', 'content', targetId: contentId);
     AdminMockData.content.removeWhere((c) => c.id == contentId);
   }
 
   // ==================== EVENTS CRUD ====================
+  /// Fetches events from the real backend GET /events endpoint.
+  /// The backend returns ApiResponse<PageResponse<EventResponse>>.
+  /// Falls back to mock data if the backend is unreachable.
   static Future<List<ManagedEvent>> getEvents({String? search, String? statusFilter, String? orgFilter}) async {
     try {
-      final queryParams = <String, dynamic>{};
-      if (search != null && search.isNotEmpty) queryParams['search'] = search;
-      if (statusFilter != null && statusFilter.isNotEmpty) queryParams['status'] = statusFilter;
-      if (orgFilter != null && orgFilter.isNotEmpty) queryParams['organizationId'] = orgFilter;
+      final queryParams = <String, dynamic>{'page': '0', 'size': '100'};
+      if (statusFilter != null && statusFilter.isNotEmpty) queryParams['eventType'] = statusFilter;
 
-      final response = await ApiClient.get('/admin/events', queryParameters: queryParams);
+      final response = await ApiClient.get('/events', queryParameters: queryParams);
       if (response.statusCode == 200 && response.data != null) {
-        final payload = response.data is Map && response.data.containsKey('data')
-            ? response.data['data']
-            : response.data;
-        if (payload is List) {
-          return payload.map((e) => ManagedEvent(
+        final data = ApiClient.extractData(response);
+        // Backend returns PageResponse with 'content' list
+        List? eventList;
+        if (data is Map && data.containsKey('content')) {
+          eventList = data['content'] as List?;
+        } else if (data is List) {
+          eventList = data;
+        }
+
+        if (eventList != null) {
+          var events = eventList.map((e) => ManagedEvent(
             id: e['id']?.toString() ?? '',
             title: e['title']?.toString() ?? '',
             description: e['description']?.toString() ?? '',
-            venue: e['venue']?.toString() ?? e['location']?.toString() ?? '',
-            organizer: e['organizer']?.toString() ?? '',
-            status: e['status']?.toString() ?? 'published',
-            startDate: e['startDate'] != null ? DateTime.parse(e['startDate']) : null,
+            venue: e['location']?.toString() ?? '',
+            organizer: e['organizerName']?.toString() ?? '',
+            posterUrl: e['bannerUrl']?.toString(),
+            status: 'published',
+            startDate: e['startTime'] != null ? DateTime.tryParse(e['startTime'].toString()) : null,
+            endDate: e['endTime'] != null ? DateTime.tryParse(e['endTime'].toString()) : null,
             registrationsCount: e['registrationsCount'] ?? 0,
-            createdAt: DateTime.now(),
-            createdBy: e['createdBy']?.toString(),
+            createdAt: e['createdAt'] != null ? (DateTime.tryParse(e['createdAt'].toString()) ?? DateTime.now()) : DateTime.now(),
           )).toList();
+
+          // Client-side search filter (backend GET /events doesn't have a search param)
+          if (search != null && search.isNotEmpty) {
+            final q = search.toLowerCase();
+            events = events.where((e) =>
+              e.title.toLowerCase().contains(q) ||
+              e.organizer.toLowerCase().contains(q) ||
+              e.venue.toLowerCase().contains(q)
+            ).toList();
+          }
+          return events;
         }
       }
     } catch (_) {}
 
+    // Fallback to mock data if backend unreachable
     var items = List<ManagedEvent>.from(AdminMockData.events);
     if (search != null && search.isNotEmpty) {
       final q = search.toLowerCase();
@@ -388,40 +533,50 @@ class AdminService {
     return items;
   }
 
+  /// Creates event via the real backend POST /events endpoint.
+  /// Maps Admin Panel fields to the backend's CreateEventRequest DTO.
   static Future<void> createEvent(ManagedEvent event) async {
     try {
-      await ApiClient.post('/admin/events', data: {
+      final response = await ApiClient.post('/events', data: {
         'title': event.title,
-        'description': event.description,
-        'venue': event.venue,
-        'organizer': event.organizer,
-        'organizationId': event.organizationId,
-        'status': event.status,
-        'startDate': event.startDate?.toIso8601String(),
-        'endDate': event.endDate?.toIso8601String(),
-        'registrationDeadline': event.registrationDeadline?.toIso8601String(),
-        'contactInfo': event.contactInfo,
+        'description': event.description.isNotEmpty ? event.description : null,
+        'eventType': 'workshop',
+        'location': event.venue.isNotEmpty ? event.venue : null,
+        'isVirtual': false,
+        'startTime': event.startDate?.toUtc().toIso8601String(),
+        'endTime': event.endDate?.toUtc().toIso8601String(),
+        'bannerUrl': event.posterUrl,
+        'maxAttendees': null,
       });
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        // Event successfully created on backend — reload from server
+        _logActivity('Event created', event.createdBy ?? 'Admin', event.title, 'event');
+        return;
+      }
     } catch (_) {}
 
+    // Fallback: add to mock data if backend is down
     AdminMockData.events.insert(0, event);
-    _logActivity('Event created', event.createdBy ?? 'Admin', event.title, 'event', targetId: event.id);
+    _logActivity('Event created (offline)', event.createdBy ?? 'Admin', event.title, 'event', targetId: event.id);
   }
 
+  /// Updates event via PUT /events/{id}. Falls back to mock update.
+  /// NOTE: The backend EventController currently has no PUT endpoint.
+  /// This will attempt the call; if 404/405, it falls back to mock update.
   static Future<void> updateEvent(String eventId, {String? title, String? description, String? venue, String? organizer, String? organizationId, DateTime? startDate, DateTime? endDate, DateTime? registrationDeadline, String? contactInfo, String? status, String? visibility}) async {
     try {
-      await ApiClient.put('/admin/events/$eventId', data: {
+      await ApiClient.put('/events/$eventId', data: {
         if (title != null) 'title': title,
         if (description != null) 'description': description,
-        if (venue != null) 'venue': venue,
-        if (organizer != null) 'organizer': organizer,
-        if (organizationId != null) 'organizationId': organizationId,
-        if (startDate != null) 'startDate': startDate.toIso8601String(),
-        if (endDate != null) 'endDate': endDate.toIso8601String(),
-        if (status != null) 'status': status,
+        if (venue != null) 'location': venue,
+        if (startDate != null) 'startTime': startDate.toUtc().toIso8601String(),
+        if (endDate != null) 'endTime': endDate.toUtc().toIso8601String(),
       });
+      _logActivity('Event updated', 'Admin', title ?? eventId, 'event', targetId: eventId);
+      return;
     } catch (_) {}
 
+    // Fallback to mock update
     final idx = AdminMockData.events.indexWhere((e) => e.id == eventId);
     if (idx != -1) {
       AdminMockData.events[idx] = AdminMockData.events[idx].copyWith(
@@ -431,53 +586,83 @@ class AdminService {
         registrationDeadline: registrationDeadline, contactInfo: contactInfo,
         status: status, visibility: visibility,
       );
-      _logActivity('Event updated', 'Sudhanshu Patel', AdminMockData.events[idx].title, 'event', targetId: eventId);
+      _logActivity('Event updated (offline)', 'Admin', AdminMockData.events[idx].title, 'event', targetId: eventId);
     }
   }
 
+  /// Updates event status. Attempts backend PUT, falls back to mock.
   static Future<void> updateEventStatus(String eventId, String newStatus) async {
     try {
-      await ApiClient.patch('/admin/events/$eventId/status', data: {'status': newStatus});
+      await ApiClient.put('/events/$eventId', data: {
+        'eventType': newStatus,
+      });
+      _logActivity('Event status changed', 'Admin', '$eventId -> $newStatus', 'event', targetId: eventId);
+      return;
     } catch (_) {}
 
     final idx = AdminMockData.events.indexWhere((e) => e.id == eventId);
     if (idx != -1) {
       AdminMockData.events[idx] = AdminMockData.events[idx].copyWith(status: newStatus);
-      _logActivity('Event $newStatus', 'Sudhanshu Patel', AdminMockData.events[idx].title, 'event', targetId: eventId);
+      _logActivity('Event $newStatus (offline)', 'Admin', AdminMockData.events[idx].title, 'event', targetId: eventId);
     }
   }
 
+  /// Deletes/soft-deletes event. Attempts backend DELETE, falls back to mock removal.
   static Future<void> deleteEvent(String eventId) async {
     try {
-      await ApiClient.delete('/admin/events/$eventId');
+      await ApiClient.delete('/events/$eventId');
+      _logActivity('Event deleted', 'Admin', eventId, 'event', targetId: eventId);
+      return;
     } catch (_) {}
 
-    final event = AdminMockData.events.firstWhere((e) => e.id == eventId);
-    AdminMockData.events.removeWhere((e) => e.id == eventId);
-    _logActivity('Event deleted', 'Sudhanshu Patel', event.title, 'event', targetId: eventId);
+    // Fallback to mock removal
+    try {
+      final event = AdminMockData.events.firstWhere((e) => e.id == eventId);
+      AdminMockData.events.removeWhere((e) => e.id == eventId);
+      _logActivity('Event deleted (offline)', 'Admin', event.title, 'event', targetId: eventId);
+    } catch (_) {}
   }
 
   // ==================== ORGANIZATIONS CRUD ====================
+  /// Fetches organizations/clubs from the real backend GET /clubs endpoint.
   static Future<List<Organization>> getOrganizations({String? search, String? typeFilter}) async {
     try {
-      final queryParams = <String, dynamic>{};
-      if (search != null && search.isNotEmpty) queryParams['search'] = search;
-      if (typeFilter != null && typeFilter.isNotEmpty) queryParams['type'] = typeFilter;
-      final response = await ApiClient.get('/admin/organizations', queryParameters: queryParams);
+      final queryParams = <String, dynamic>{'page': '0', 'size': '100'};
+      final response = await ApiClient.get('/clubs', queryParameters: queryParams);
       if (response.statusCode == 200 && response.data != null) {
-        final payload = response.data is Map && response.data.containsKey('data')
-            ? response.data['data']
-            : response.data;
-        if (payload is List) {
-          return payload.map((o) => Organization(
+        final data = ApiClient.extractData(response);
+        List? clubList;
+        if (data is Map && data.containsKey('content')) {
+          clubList = data['content'] as List?;
+        } else if (data is List) {
+          clubList = data;
+        }
+
+        if (clubList != null) {
+          var items = clubList.map((o) => Organization(
             id: o['id']?.toString() ?? '',
             name: o['name']?.toString() ?? '',
-            type: o['type']?.toString() ?? 'club',
+            type: (o['category']?.toString().toLowerCase() == 'team') ? 'team' : 'club',
             description: o['description']?.toString(),
+            logoUrl: o['logoUrl']?.toString() ?? o['bannerUrl']?.toString(),
             status: o['status']?.toString() ?? 'active',
             memberIds: List<String>.from(o['memberIds'] ?? []),
-            createdAt: DateTime.now(),
+            createdAt: o['createdAt'] != null
+                ? (DateTime.tryParse(o['createdAt'].toString()) ?? DateTime.now())
+                : DateTime.now(),
           )).toList();
+
+          if (search != null && search.isNotEmpty) {
+            final q = search.toLowerCase();
+            items = items.where((o) =>
+              o.name.toLowerCase().contains(q) ||
+              (o.description?.toLowerCase().contains(q) ?? false)
+            ).toList();
+          }
+          if (typeFilter != null && typeFilter.isNotEmpty) {
+            items = items.where((o) => o.type == typeFilter).toList();
+          }
+          return items;
         }
       }
     } catch (_) {}
@@ -496,18 +681,23 @@ class AdminService {
     return items;
   }
 
+  /// Creates a club/organization via POST /clubs.
   static Future<void> createOrganization(Organization org) async {
     try {
-      await ApiClient.post('/admin/organizations', data: {
+      final response = await ApiClient.post('/clubs', data: {
         'name': org.name,
-        'type': org.type,
-        'description': org.description,
-        'department': org.department,
+        'description': org.description ?? '',
+        'category': org.type.toUpperCase(),
+        'logoUrl': org.logoUrl,
       });
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        _logActivity('Organization created', 'Sudhanshu Patel', org.name, 'organization', targetId: org.id);
+        return;
+      }
     } catch (_) {}
 
     AdminMockData.organizations.insert(0, org);
-    _logActivity('Organization created', 'Sudhanshu Patel', org.name, 'organization', targetId: org.id);
+    _logActivity('Organization created (offline)', 'Sudhanshu Patel', org.name, 'organization', targetId: org.id);
   }
 
   static Future<void> updateOrganization(String orgId, {String? name, String? description, String? status, String? type}) async {
@@ -583,26 +773,54 @@ class AdminService {
   }
 
   // ==================== NOTICES CRUD ====================
+  /// Fetches notices from the real backend GET /notices endpoint.
   static Future<List<Notice>> getNotices({String? search, String? statusFilter}) async {
     try {
-      final queryParams = <String, dynamic>{};
-      if (search != null && search.isNotEmpty) queryParams['search'] = search;
-      if (statusFilter != null && statusFilter.isNotEmpty) queryParams['status'] = statusFilter;
-      final response = await ApiClient.get('/admin/notices', queryParameters: queryParams);
+      final queryParams = <String, dynamic>{'page': '0', 'size': '100'};
+      final response = await ApiClient.get('/notices', queryParameters: queryParams);
       if (response.statusCode == 200 && response.data != null) {
-        final payload = response.data is Map && response.data.containsKey('data')
-            ? response.data['data']
-            : response.data;
-        if (payload is List) {
-          return payload.map((n) => Notice(
-            id: n['id']?.toString() ?? '',
-            title: n['title']?.toString() ?? '',
-            content: n['content']?.toString() ?? '',
-            priority: n['priority']?.toString() ?? 'normal',
-            status: n['status']?.toString() ?? 'published',
-            authorName: n['authorName']?.toString() ?? 'Admin',
-            createdAt: DateTime.now(),
-          )).toList();
+        final data = ApiClient.extractData(response);
+        List? noticeList;
+        if (data is Map && data.containsKey('content')) {
+          noticeList = data['content'] as List?;
+        } else if (data is List) {
+          noticeList = data;
+        }
+
+        if (noticeList != null) {
+          var items = noticeList.map((n) {
+            final authorObj = n['author'];
+            String authorName = 'Admin';
+            if (authorObj is Map) {
+              authorName = authorObj['fullName']?.toString() ?? 'Admin';
+            } else if (n['authorName'] != null) {
+              authorName = n['authorName'].toString();
+            }
+
+            return Notice(
+              id: n['id']?.toString() ?? '',
+              title: n['title']?.toString() ?? '',
+              content: n['content']?.toString() ?? n['body']?.toString() ?? '',
+              priority: n['priority']?.toString() ?? 'normal',
+              status: n['status']?.toString() ?? 'published',
+              authorName: authorName,
+              createdAt: n['createdAt'] != null
+                  ? (DateTime.tryParse(n['createdAt'].toString()) ?? DateTime.now())
+                  : DateTime.now(),
+            );
+          }).toList();
+
+          if (search != null && search.isNotEmpty) {
+            final q = search.toLowerCase();
+            items = items.where((n) =>
+              n.title.toLowerCase().contains(q) ||
+              n.content.toLowerCase().contains(q)
+            ).toList();
+          }
+          if (statusFilter != null && statusFilter.isNotEmpty) {
+            items = items.where((n) => n.status == statusFilter).toList();
+          }
+          return items;
         }
       }
     } catch (_) {}

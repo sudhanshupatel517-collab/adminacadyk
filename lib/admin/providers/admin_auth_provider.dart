@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/admin_models.dart';
 import '../data/admin_service.dart';
-import '../data/admin_mock_data.dart';
 
 class AdminAuthProvider extends ChangeNotifier {
   AdminAccount? _currentAdmin;
@@ -21,13 +20,19 @@ class AdminAuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await Future.delayed(const Duration(milliseconds: 400));
-      // Authenticate against admin accounts
-      final account = AdminService.authenticate(email, password) ?? AdminMockData.adminAccounts[0];
-      _currentAdmin = account;
-      _isLoading = false;
-      notifyListeners();
-      return true;
+      // Try real backend authentication first, then mock fallback
+      final account = await AdminService.authenticateAsync(email, password);
+      if (account != null) {
+        _currentAdmin = account;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = 'Invalid email or password';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
       _errorMessage = 'Login failed: $e';
       _isLoading = false;
@@ -42,7 +47,13 @@ class AdminAuthProvider extends ChangeNotifier {
     notifyListeners();
 
     await Future.delayed(const Duration(milliseconds: 350));
-    _currentAdmin = AdminMockData.adminAccounts[0]; // Sudhanshu Patel (Super Admin)
+    // Default SSO admin account — replace with real Firebase SSO integration
+    _currentAdmin = AdminAccount(
+      id: 'admin-sso',
+      email: 'admin@acadyk.edu',
+      name: 'Sudhanshu Patel',
+      role: 'SUPER_ADMIN',
+    );
     _isLoading = false;
     notifyListeners();
     return true;

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/admin_models.dart';
 import '../data/admin_service.dart';
-import '../data/admin_mock_data.dart';
 
 class AdminEventsProvider extends ChangeNotifier {
   List<ManagedEvent> _events = [];
@@ -54,7 +53,7 @@ class AdminEventsProvider extends ChangeNotifier {
   }) async {
     try {
       final event = ManagedEvent(
-        id: AdminMockData.nextEventId(),
+        id: 'evt-${DateTime.now().millisecondsSinceEpoch}',
         title: title,
         description: description,
         venue: venue ?? '',
