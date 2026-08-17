@@ -219,6 +219,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     final bg = isDark ? const Color(0xFF0D1117) : Colors.white;
     final cardBg = isDark ? const Color(0xFF161B22) : Colors.white;
     final borderColor = isDark ? const Color(0xFF30363D) : kBorder;
+    // Same color for both Acadyk and MITS-DU
+    final brandingTextColor = isDark ? const Color(0xFFF0F6FC) : kNavyPrimary;
     final primaryTextColor = isDark ? const Color(0xFFF0F6FC) : kNavyPrimary;
     final secondaryTextColor = isDark ? const Color(0xFF8B949E) : kNavySecondary;
     final mutedTextColor = isDark ? const Color(0xFF8B949E) : kTextMuted;
@@ -255,23 +257,26 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // 1. Top Branding: [Acadyk Logo] Acadyk  |  [MITS-DU Logo] MITS-DU
+                      // 1. Top Branding: [lagacy.png] Acadyk  |  [mitslog.png] MITS-DU (Same Color)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white : const Color(0xFF07143D),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.change_history_rounded,
-                                color: isDark ? const Color(0xFF07143D) : Colors.white,
-                                size: 16,
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(
+                              'assets/images/lagacy.png',
+                              width: 28,
+                              height: 28,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: kNavyPrimary,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(Icons.change_history_rounded, color: Colors.white, size: 16),
                               ),
                             ),
                           ),
@@ -282,7 +287,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               fontFamily: 'serif',
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
-                              color: primaryTextColor,
+                              color: brandingTextColor,
                               letterSpacing: -0.3,
                             ),
                           ),
@@ -291,11 +296,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             child: Container(width: 1, height: 22, color: borderColor),
                           ),
                           Image.asset(
-                            'assets/images/mits_logo.png',
+                            'assets/images/mitslog.png',
                             width: 26,
                             height: 26,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 26, color: Color(0xFF0F4C81)),
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              'assets/images/mits_logo.png',
+                              width: 26,
+                              height: 26,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 26, color: kNavyPrimary),
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -304,7 +315,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               fontFamily: 'serif',
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : const Color(0xFF0F4C81),
+                              color: brandingTextColor,
                               letterSpacing: -0.2,
                             ),
                           ),
@@ -691,7 +702,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // 6. Bottom Card: Built on Institutional Collaboration
+                      // 6. Bottom Card: Built on Institutional Collaboration (Centralized yellow line + Handshake + qantaforzelogo.jpg)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -708,6 +719,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           ],
                         ),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
                               'Built on Institutional Collaboration',
@@ -718,25 +730,36 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 color: primaryTextColor,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Container(width: 28, height: 2, color: kGoldAccent),
+                            const SizedBox(height: 6),
+                            // Centralized Yellow Line
+                            Center(
+                              child: Container(width: 32, height: 2, color: kGoldAccent),
+                            ),
                             const SizedBox(height: 14),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                // Quantaforze
+                                // Left: Quantaforze (qantaforzelogo.jpg / circular asset + text in same navy color)
                                 Column(
                                   children: [
-                                    Container(
-                                      width: 38,
-                                      height: 38,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.black,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Center(
-                                        child: Icon(Icons.all_inclusive_rounded, color: Colors.white, size: 20),
+                                    ClipOval(
+                                      child: Image.asset(
+                                        'assets/images/qantaforzelogo.jpg',
+                                        width: 38,
+                                        height: 38,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          width: 38,
+                                          height: 38,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Center(
+                                            child: Icon(Icons.all_inclusive_rounded, color: Colors.white, size: 20),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -752,29 +775,41 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                   ],
                                 ),
 
-                                // Handshake
+                                // Center: Handshake pic centered between two vertical grey lines
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 6),
                                   child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
-                                      Container(width: 1, height: 28, color: borderColor),
-                                      const SizedBox(width: 12),
-                                      const Icon(Icons.handshake_outlined, size: 28, color: kGoldAccent),
-                                      const SizedBox(width: 12),
-                                      Container(width: 1, height: 28, color: borderColor),
+                                      Container(width: 1, height: 32, color: borderColor),
+                                      const SizedBox(width: 14),
+                                      Icon(
+                                        Icons.handshake_outlined,
+                                        size: 32,
+                                        color: kGoldAccent,
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Container(width: 1, height: 32, color: borderColor),
                                     ],
                                   ),
                                 ),
 
-                                // MITS-DU
+                                // Right: MITS-DU (mitslog.png + text in same navy color)
                                 Column(
                                   children: [
                                     Image.asset(
-                                      'assets/images/mits_logo.png',
+                                      'assets/images/mitslog.png',
                                       width: 38,
                                       height: 38,
                                       fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 38, color: Color(0xFF0F4C81)),
+                                      errorBuilder: (_, __, ___) => Image.asset(
+                                        'assets/images/mits_logo.png',
+                                        width: 38,
+                                        height: 38,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 38, color: kNavyPrimary),
+                                      ),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
@@ -790,7 +825,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 12),
                             Text(
                               'Connecting technology, education, and opportunity.',
                               style: TextStyle(
