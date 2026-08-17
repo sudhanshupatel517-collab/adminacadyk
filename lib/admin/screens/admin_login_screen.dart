@@ -249,9 +249,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
             // Centered Main Canvas
             Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 36),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 500),
+                  constraints: const BoxConstraints(maxWidth: 490),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -310,7 +310,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 26),
+                      const SizedBox(height: 22),
 
                       // 2. Large Heading: "Administration Portal"
                       Text(
@@ -318,13 +318,13 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'serif',
-                          fontSize: 34,
+                          fontSize: 32,
                           fontWeight: FontWeight.w700,
                           color: primaryTextColor,
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
 
                       // 3. Gold Decorative Divider with Center Shield Outline
                       Row(
@@ -350,7 +350,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
 
                       // 4. Tagline: "Secure  Centralized  Reliable"
                       Text(
@@ -358,18 +358,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'serif',
-                          fontSize: 15,
+                          fontSize: 14.5,
                           fontWeight: FontWeight.w600,
                           color: secondaryTextColor,
                           letterSpacing: 0.6,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // 5. Main Login Card
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(28),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           color: cardBg,
                           borderRadius: BorderRadius.circular(16),
@@ -398,18 +398,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                   'Administrator Log in',
                                   style: TextStyle(
                                     fontFamily: 'serif',
-                                    fontSize: 22,
+                                    fontSize: 21,
                                     fontWeight: FontWeight.w700,
                                     color: primaryTextColor,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 20),
 
                             // Field 1: Official Email Address
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
                                 color: isDark ? const Color(0xFF0D1117) : Colors.white,
                                 borderRadius: BorderRadius.circular(8),
@@ -462,11 +462,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 child: Text(_emailError!, style: const TextStyle(fontSize: 11, color: Color(0xFFEF5350))),
                               ),
                             ],
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 12),
 
                             // Field 2: Password
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
                                 color: isDark ? const Color(0xFF0D1117) : Colors.white,
                                 borderRadius: BorderRadius.circular(8),
@@ -530,7 +530,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 child: Text(_passwordError!, style: const TextStyle(fontSize: 11, color: Color(0xFFEF5350))),
                               ),
                             ],
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
 
                             // Forgot your password?
                             Align(
@@ -550,12 +550,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
 
                             // Sign In to Administration Button
                             SizedBox(
                               width: double.infinity,
-                              height: 48,
+                              height: 46,
                               child: ElevatedButton(
                                 onPressed: _isLoading ? null : _handleLogin,
                                 style: ElevatedButton.styleFrom(
@@ -585,7 +585,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                       ),
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
 
                             // "or continue with" Divider
                             Row(
@@ -601,12 +601,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 Expanded(child: Divider(color: borderColor, thickness: 1)),
                               ],
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
 
                             // Continue with One-Time Password Button
                             SizedBox(
                               width: double.infinity,
-                              height: 46,
+                              height: 44,
                               child: OutlinedButton(
                                 onPressed: _isLoading ? null : _handleOtpLogin,
                                 style: OutlinedButton.styleFrom(
@@ -626,7 +626,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontFamily: 'serif',
-                                          fontSize: 14,
+                                          fontSize: 13.5,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -636,12 +636,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 16),
 
                             // Authorized Access Only Notice Box
                             Container(
                               width: double.infinity,
-                              padding: const EdgeInsets.all(14),
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: isDark ? const Color(0xFF1E170A) : kGoldLight,
                                 borderRadius: BorderRadius.circular(8),
@@ -655,10 +655,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 children: [
                                   Icon(
                                     Icons.lock_outline_rounded,
-                                    size: 20,
+                                    size: 18,
                                     color: kGoldAccent,
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 10),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -666,7 +666,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                         Text(
                                           'Authorized Access Only',
                                           style: TextStyle(
-                                            fontSize: 12,
+                                            fontSize: 11.5,
                                             fontWeight: FontWeight.w700,
                                             color: isDark ? const Color(0xFFF0883E) : const Color(0xFF785116),
                                           ),
@@ -675,9 +675,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                         Text(
                                           'This portal is restricted to authorized Acadyk administrators and institutional personnel.',
                                           style: TextStyle(
-                                            fontSize: 11.5,
+                                            fontSize: 11,
                                             color: isDark ? const Color(0xFFC9D1D9) : const Color(0xFF594D3B),
-                                            height: 1.35,
+                                            height: 1.3,
                                           ),
                                         ),
                                       ],
@@ -689,12 +689,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 18),
 
                       // 6. Bottom Card: Built on Institutional Collaboration
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(22),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         decoration: BoxDecoration(
                           color: cardBg,
                           borderRadius: BorderRadius.circular(16),
@@ -713,14 +713,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               'Built on Institutional Collaboration',
                               style: TextStyle(
                                 fontFamily: 'serif',
-                                fontSize: 16,
+                                fontSize: 14.5,
                                 fontWeight: FontWeight.w700,
                                 color: primaryTextColor,
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Container(width: 32, height: 2, color: kGoldAccent),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 4),
+                            Container(width: 28, height: 2, color: kGoldAccent),
+                            const SizedBox(height: 14),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -729,22 +729,22 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 Column(
                                   children: [
                                     Container(
-                                      width: 44,
-                                      height: 44,
+                                      width: 38,
+                                      height: 38,
                                       decoration: const BoxDecoration(
                                         color: Colors.black,
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Center(
-                                        child: Icon(Icons.all_inclusive_rounded, color: Colors.white, size: 22),
+                                        child: Icon(Icons.all_inclusive_rounded, color: Colors.white, size: 20),
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 6),
                                     Text(
                                       'Quantaforze',
                                       style: TextStyle(
                                         fontFamily: 'serif',
-                                        fontSize: 15,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.w700,
                                         color: primaryTextColor,
                                       ),
@@ -754,14 +754,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
                                 // Handshake
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
                                   child: Row(
                                     children: [
-                                      Container(width: 1, height: 32, color: borderColor),
-                                      const SizedBox(width: 14),
-                                      const Icon(Icons.handshake_outlined, size: 32, color: kGoldAccent),
-                                      const SizedBox(width: 14),
-                                      Container(width: 1, height: 32, color: borderColor),
+                                      Container(width: 1, height: 28, color: borderColor),
+                                      const SizedBox(width: 12),
+                                      const Icon(Icons.handshake_outlined, size: 28, color: kGoldAccent),
+                                      const SizedBox(width: 12),
+                                      Container(width: 1, height: 28, color: borderColor),
                                     ],
                                   ),
                                 ),
@@ -771,17 +771,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                   children: [
                                     Image.asset(
                                       'assets/images/mits_logo.png',
-                                      width: 44,
-                                      height: 44,
+                                      width: 38,
+                                      height: 38,
                                       fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 44, color: Color(0xFF0F4C81)),
+                                      errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 38, color: Color(0xFF0F4C81)),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 6),
                                     Text(
                                       'MITS-DU',
                                       style: TextStyle(
                                         fontFamily: 'serif',
-                                        fontSize: 15,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.w700,
                                         color: primaryTextColor,
                                       ),
@@ -790,11 +790,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 10),
                             Text(
                               'Connecting technology, education, and opportunity.',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 11.5,
                                 color: mutedTextColor,
                               ),
                             ),
