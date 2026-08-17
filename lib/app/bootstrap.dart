@@ -11,6 +11,9 @@ import '../admin/providers/admin_dashboard_provider.dart';
 import '../admin/providers/admin_users_provider.dart';
 import '../admin/providers/admin_content_provider.dart';
 import '../admin/providers/admin_settings_provider.dart';
+import '../admin/providers/admin_events_provider.dart';
+import '../admin/providers/admin_organizations_provider.dart';
+import '../admin/providers/admin_notices_provider.dart';
 import 'app.dart';
 
 Future<void> bootstrap() async {
@@ -35,6 +38,9 @@ Future<void> bootstrap() async {
           legacy_provider.ChangeNotifierProvider(create: (_) => AdminUsersProvider()),
           legacy_provider.ChangeNotifierProvider(create: (_) => AdminContentProvider()),
           legacy_provider.ChangeNotifierProvider(create: (_) => AdminSettingsProvider()),
+          legacy_provider.ChangeNotifierProvider(create: (_) => AdminEventsProvider()),
+          legacy_provider.ChangeNotifierProvider(create: (_) => AdminOrganizationsProvider()),
+          legacy_provider.ChangeNotifierProvider(create: (_) => AdminNoticesProvider()),
         ],
         child: const AcadykApp(),
       ),

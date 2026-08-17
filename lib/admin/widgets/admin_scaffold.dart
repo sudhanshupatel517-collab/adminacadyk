@@ -28,6 +28,9 @@ class AdminScaffold extends StatefulWidget {
   static const List<AdminNavItem> navItems = [
     AdminNavItem(label: 'Dashboard', icon: Icons.grid_view_outlined, activeIcon: Icons.grid_view_rounded, routeKey: 'dashboard'),
     AdminNavItem(label: 'Users', icon: Icons.people_alt_outlined, activeIcon: Icons.people_alt_rounded, routeKey: 'users'),
+    AdminNavItem(label: 'Events', icon: Icons.event_outlined, activeIcon: Icons.event_rounded, routeKey: 'events'),
+    AdminNavItem(label: 'Organizations', icon: Icons.groups_outlined, activeIcon: Icons.groups_rounded, routeKey: 'organizations'),
+    AdminNavItem(label: 'Notices', icon: Icons.campaign_outlined, activeIcon: Icons.campaign_rounded, routeKey: 'notices'),
     AdminNavItem(label: 'Content', icon: Icons.description_outlined, activeIcon: Icons.description_rounded, routeKey: 'content'),
     AdminNavItem(label: 'Analytics', icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart_rounded, routeKey: 'analytics'),
     AdminNavItem(label: 'Activity', icon: Icons.schedule_outlined, activeIcon: Icons.schedule_rounded, routeKey: 'activity'),
@@ -72,10 +75,6 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  // ======== MOBILE APP BAR ========
-  // Left: Profile avatar icon -> opens profile drawer
-  // Center: Logo + "Admin"
-  // Right: Theme toggle ONLY on desktop top bar (removed from here)
   PreferredSizeWidget _buildMobileAppBar(bool isDark) {
     final admin = context.watch<AdminAuthProvider>().currentAdmin;
     return AppBar(
@@ -113,8 +112,6 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  // ======== PROFILE DRAWER (MOBILE - endDrawer) ========
-  // Shows ONLY admin profile info + actions (NO nav items - those are in bottom bar)
   Widget _buildProfileDrawer(bool isDark) {
     final admin = context.watch<AdminAuthProvider>().currentAdmin;
     final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEEEEEE);
@@ -126,7 +123,6 @@ class _AdminScaffoldState extends State<AdminScaffold> {
       child: SafeArea(
         child: Column(
           children: [
-            // Profile Header
             Container(
               padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
               child: Column(
@@ -170,14 +166,17 @@ class _AdminScaffoldState extends State<AdminScaffold> {
               ),
             ),
             Container(height: 1, color: borderColor),
-
-            // Profile Actions
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 children: [
-                  _buildDrawerItem(isDark, Icons.person_outline_rounded, 'My Profile', () {
+                  _buildDrawerItem(isDark, Icons.groups_rounded, 'Organizations', () {
                     Navigator.pop(context);
+                    widget.onNavigate('organizations');
+                  }),
+                  _buildDrawerItem(isDark, Icons.campaign_rounded, 'Notices', () {
+                    Navigator.pop(context);
+                    widget.onNavigate('notices');
                   }),
                   _buildDrawerItem(isDark, Icons.tune_rounded, 'Settings', () {
                     Navigator.pop(context);
@@ -186,20 +185,12 @@ class _AdminScaffoldState extends State<AdminScaffold> {
                   _buildDrawerItem(isDark, Icons.security_rounded, 'Security', () {
                     Navigator.pop(context);
                   }),
-                  _buildDrawerItem(isDark, Icons.notifications_outlined, 'Notifications', () {
-                    Navigator.pop(context);
-                  }),
                   _buildDrawerItem(isDark, Icons.help_outline_rounded, 'Help & Support', () {
-                    Navigator.pop(context);
-                  }),
-                  _buildDrawerItem(isDark, Icons.info_outline_rounded, 'About', () {
                     Navigator.pop(context);
                   }),
                 ],
               ),
             ),
-
-            // Sign Out
             Container(height: 1, color: borderColor),
             Padding(
               padding: const EdgeInsets.all(12),
@@ -258,7 +249,6 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  // ======== DESKTOP SIDEBAR ========
   Widget _buildSidebar(bool isDark, bool isCompact, Color bgColor) {
     final width = isCompact ? 68.0 : 260.0;
     final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE8E8E8);
@@ -271,7 +261,6 @@ class _AdminScaffoldState extends State<AdminScaffold> {
       ),
       child: Column(
         children: [
-          // Logo
           Container(
             height: 64,
             padding: EdgeInsets.symmetric(horizontal: isCompact ? 0 : 22),
@@ -303,7 +292,6 @@ class _AdminScaffoldState extends State<AdminScaffold> {
                 )),
               ),
             ),
-          // Nav items
           Expanded(
             child: ListView(
               padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 12, vertical: 4),
@@ -318,7 +306,6 @@ class _AdminScaffoldState extends State<AdminScaffold> {
               }).toList(),
             ),
           ),
-          // Sign out at bottom
           Container(height: 1, color: borderColor),
           Padding(
             padding: EdgeInsets.all(isCompact ? 8 : 12),
@@ -429,8 +416,6 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  // ======== DESKTOP TOP BAR ========
-  // Single theme toggle here + profile
   Widget _buildDesktopTopBar(bool isDark) {
     final admin = context.watch<AdminAuthProvider>().currentAdmin;
     final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE8E8E8);
@@ -453,10 +438,8 @@ class _AdminScaffoldState extends State<AdminScaffold> {
             fontSize: 13, color: isDark ? const Color(0xFF666666) : const Color(0xFF999999),
           )),
           const Spacer(),
-          // SINGLE theme toggle
           _buildThemeToggle(isDark),
           const SizedBox(width: 16),
-          // Profile
           GestureDetector(
             onTap: () => _showProfileMenu(isDark, admin),
             child: Container(
@@ -501,7 +484,6 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  // ======== THEME TOGGLE (single compact button) ========
   Widget _buildThemeToggle(bool isDark) {
     return Container(
       decoration: BoxDecoration(
@@ -521,24 +503,15 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  // ======== BOTTOM NAV (MOBILE) ========
-  // 5 items: Dashboard, Users, Content, Analytics, Settings
   Widget _buildBottomNav(bool isDark) {
     final bottomItems = [
       AdminScaffold.navItems[0], // Dashboard
       AdminScaffold.navItems[1], // Users
-      AdminScaffold.navItems[2], // Content
-      AdminScaffold.navItems[3], // Analytics
-      AdminScaffold.navItems[4], // Activity
+      AdminScaffold.navItems[2], // Events
+      AdminScaffold.navItems[5], // Content
+      AdminScaffold.navItems[7], // Activity
     ];
 
-    int currentIndex = 0;
-    for (int i = 0; i < bottomItems.length; i++) {
-      if (bottomItems[i].routeKey == widget.currentRoute) {
-        currentIndex = i;
-        break;
-      }
-    }
 
     return Container(
       decoration: BoxDecoration(
@@ -587,7 +560,6 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  // ======== HELPERS ========
   Widget _buildLogo(double size) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(size * 0.22),
@@ -629,11 +601,11 @@ class _AdminScaffoldState extends State<AdminScaffold> {
         ),
         const PopupMenuDivider(),
         PopupMenuItem<dynamic>(
-          onTap: () {},
+          onTap: () => widget.onNavigate('settings'),
           child: Row(children: [
-            Icon(Icons.person_outline_rounded, size: 18, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555)),
+            Icon(Icons.tune_rounded, size: 18, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555)),
             const SizedBox(width: 10),
-            Text('Profile', style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555))),
+            Text('Settings', style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555))),
           ]),
         ),
         PopupMenuItem<dynamic>(
@@ -652,6 +624,9 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     switch (route) {
       case 'dashboard': return 'Dashboard';
       case 'users': return 'User Management';
+      case 'events': return 'Event Management';
+      case 'organizations': return 'Clubs & Teams';
+      case 'notices': return 'Notices & Announcements';
       case 'content': return 'Content Moderation';
       case 'analytics': return 'Analytics';
       case 'activity': return 'Activity Log';
@@ -663,10 +638,13 @@ class _AdminScaffoldState extends State<AdminScaffold> {
   String _routeToSubtitle(String route) {
     switch (route) {
       case 'dashboard': return 'Overview & insights';
-      case 'users': return 'Manage platform users';
+      case 'users': return 'Manage platform users, students & faculty';
+      case 'events': return 'Create, publish & schedule campus events';
+      case 'organizations': return 'Manage clubs, teams & memberships';
+      case 'notices': return 'Publish institutional announcements';
       case 'content': return 'Review & moderate posts';
       case 'analytics': return 'Growth & engagement data';
-      case 'activity': return 'Audit trail & history';
+      case 'activity': return 'Audit trail & administrative history';
       case 'settings': return 'Platform configuration';
       default: return '';
     }

@@ -6,6 +6,9 @@ import 'admin_login_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_users_screen.dart';
 import 'admin_content_screen.dart';
+import 'admin_events_screen.dart';
+import 'admin_organizations_screen.dart';
+import 'admin_notices_screen.dart';
 import 'admin_analytics_screen.dart';
 import 'admin_activity_screen.dart';
 import 'admin_settings_screen.dart';
@@ -52,6 +55,12 @@ class _AdminRootScreenState extends State<AdminRootScreen> {
         return const AdminDashboardScreen();
       case 'users':
         return const AdminUsersScreen();
+      case 'events':
+        return const AdminEventsScreen();
+      case 'organizations':
+        return const AdminOrganizationsScreen();
+      case 'notices':
+        return const AdminNoticesScreen();
       case 'content':
         return const AdminContentScreen();
       case 'analytics':

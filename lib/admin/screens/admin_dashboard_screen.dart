@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/admin_dashboard_provider.dart';
 import '../widgets/admin_stat_card.dart';
 import '../widgets/admin_responsive.dart';
+import '../data/admin_service.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -65,7 +66,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isDesktop = constraints.maxWidth >= AdminBreakpoints.tablet;
-          final isTabletSize = constraints.maxWidth >= AdminBreakpoints.mobile && !isDesktop;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,23 +113,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         title: 'Total Users', value: '${stats.totalUsers}',
         icon: Icons.people_alt_rounded,
         iconColor: isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0),
-        subtitle: '+${stats.newUsersToday} today',
+        subtitle: '${stats.totalStudents} students · ${stats.totalFaculty} faculty',
       ),
       AdminStatCard(
         title: 'Active Users', value: '${stats.activeUsers}',
         icon: Icons.person_rounded,
         iconColor: const Color(0xFF00BA7C),
-        subtitle: '${((stats.activeUsers / stats.totalUsers) * 100).toStringAsFixed(0)}%',
+        subtitle: '${((stats.activeUsers / (stats.totalUsers > 0 ? stats.totalUsers : 1)) * 100).toStringAsFixed(0)}% active rate',
       ),
       AdminStatCard(
-        title: 'Total Posts', value: '${stats.totalPosts}',
-        icon: Icons.description_rounded,
+        title: 'Campus Events', value: '${stats.totalEvents}',
+        icon: Icons.event_rounded,
+        iconColor: isDark ? const Color(0xFFA5D6A7) : const Color(0xFF2E7D32),
+        subtitle: 'Hackathons & workshops',
+      ),
+      AdminStatCard(
+        title: 'Clubs & Teams', value: '${stats.totalOrganizations}',
+        icon: Icons.groups_rounded,
         iconColor: isDark ? const Color(0xFFCE93D8) : const Color(0xFF7B1FA2),
-      ),
-      AdminStatCard(
-        title: 'Pending Reports', value: '${stats.pendingReports}',
-        icon: Icons.flag_rounded,
-        iconColor: isDark ? const Color(0xFFEF9A9A) : const Color(0xFFC62828),
+        subtitle: '${stats.totalClubs} clubs active',
       ),
     ];
 
@@ -177,7 +179,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         children: [
           Row(
             children: [
-              Text('Recent Activity', style: TextStyle(
+              Text('Recent Audit Activity', style: TextStyle(
                 fontSize: 16, fontWeight: FontWeight.w700,
                 color: isDark ? Colors.white : const Color(0xFF1A1A1A),
               )),
@@ -221,8 +223,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   actionColor = const Color(0xFFEF5350);
                   break;
                 case 'new admin added':
+                case 'user added':
                   actionIcon = Icons.person_add_rounded;
                   actionColor = const Color(0xFF00BA7C);
+                  break;
+                case 'event created':
+                case 'event published':
+                  actionIcon = Icons.event_available_rounded;
+                  actionColor = const Color(0xFF1E88E5);
+                  break;
+                case 'notice published':
+                  actionIcon = Icons.campaign_rounded;
+                  actionColor = const Color(0xFF9C27B0);
                   break;
                 default:
                   actionIcon = Icons.info_outline_rounded;
@@ -256,6 +268,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             fontSize: 12,
                             color: isDark ? const Color(0xFF666666) : const Color(0xFF999999),
                           )),
+                          if (entry.reason != null) ...[
+                            const SizedBox(height: 2),
+                            Text('Audit Note: ${entry.reason}', style: TextStyle(
+                              fontSize: 11, fontStyle: FontStyle.italic,
+                              color: isDark ? const Color(0xFF888888) : const Color(0xFF777777),
+                            )),
+                          ],
                         ],
                       ),
                     ),
@@ -272,9 +291,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
     final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
     final items = [
-      {'label': 'Opportunities', 'value': '${stats.totalOpportunities}', 'icon': Icons.work_rounded, 'color': isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0)},
-      {'label': 'Clubs', 'value': '${stats.totalClubs}', 'icon': Icons.groups_rounded, 'color': isDark ? const Color(0xFFCE93D8) : const Color(0xFF7B1FA2)},
-      {'label': 'Events', 'value': '${stats.totalEvents}', 'icon': Icons.event_rounded, 'color': isDark ? const Color(0xFFA5D6A7) : const Color(0xFF2E7D32)},
+      {'label': 'Campus Notices', 'value': '${stats.totalNotices}', 'icon': Icons.campaign_rounded, 'color': isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0)},
+      {'label': 'Total Posts Moderated', 'value': '${stats.totalPosts}', 'icon': Icons.description_rounded, 'color': isDark ? const Color(0xFFCE93D8) : const Color(0xFF7B1FA2)},
+      {'label': 'Pending Flagged Content', 'value': '${stats.pendingReports}', 'icon': Icons.flag_rounded, 'color': isDark ? const Color(0xFFEF9A9A) : const Color(0xFFC62828)},
     ];
 
     return Container(
@@ -335,27 +354,37 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Quick Actions', style: TextStyle(
+          Text('Quick Management Actions', style: TextStyle(
             fontSize: 16, fontWeight: FontWeight.w700,
             color: isDark ? Colors.white : const Color(0xFF1A1A1A),
           )),
           const SizedBox(height: 16),
-          _buildActionButton(isDark, Icons.person_add_rounded, 'Add New User'),
+          _buildActionButton(isDark, Icons.download_rounded, 'Export Users (CSV)', () {
+            final csv = AdminService.generateUsersCsv();
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Generated CSV export with ${csv.split("\n").length - 1} records.'),
+              backgroundColor: const Color(0xFF00BA7C),
+            ));
+          }),
           const SizedBox(height: 8),
-          _buildActionButton(isDark, Icons.shield_rounded, 'Review Reports'),
-          const SizedBox(height: 8),
-          _buildActionButton(isDark, Icons.download_rounded, 'Export Data'),
+          _buildActionButton(isDark, Icons.refresh_rounded, 'Refresh Statistics', () {
+            context.read<AdminDashboardProvider>().loadDashboard();
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Dashboard stats refreshed.'),
+              duration: Duration(seconds: 1),
+            ));
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton(bool isDark, IconData icon, String label) {
+  Widget _buildActionButton(bool isDark, IconData icon, String label, VoidCallback onTap) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () {},
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
