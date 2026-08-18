@@ -5,6 +5,9 @@ import '../widgets/admin_stat_card.dart';
 import '../widgets/admin_responsive.dart';
 import '../data/admin_service.dart';
 
+/// Refined Enterprise Dashboard for Acadyk Admin Panel.
+/// Designed with human-product discipline: clean hierarchy, 1px subtle borders,
+/// high information density, and restrained academic aesthetic.
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
@@ -27,33 +30,59 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final provider = context.watch<AdminDashboardProvider>();
 
     if (provider.state == LoadState.loading) {
-      return Center(child: CircularProgressIndicator(
-        strokeWidth: 2,
-        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-      ));
+      return Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: isDark ? Colors.white : const Color(0xFF0F172A),
+          ),
+        ),
+      );
     }
 
     if (provider.state == LoadState.error) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.cloud_off_rounded, size: 48, color: isDark ? const Color(0xFF333333) : const Color(0xFFCCCCCC)),
-            const SizedBox(height: 12),
-            Text(provider.error ?? 'Unable to load dashboard', style: TextStyle(
-              color: isDark ? const Color(0xFF888888) : const Color(0xFF888888),
-            )),
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: () => provider.loadDashboard(),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                side: BorderSide(color: isDark ? const Color(0xFF333333) : const Color(0xFFCCCCCC)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 36, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+              const SizedBox(height: 12),
+              Text(
+                'Unable to load dashboard data',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
               ),
-              child: const Text('Retry'),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                provider.error ?? 'Please check network connection or try again.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () => provider.loadDashboard(),
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: const Text('Retry'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
+                  side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -70,24 +99,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Stat Cards Grid
+              // Metric Blocks Grid
               _buildStatGrid(stats, isDark, constraints.maxWidth),
               const SizedBox(height: 24),
 
-              // Content Area
+              // Main Information Columns
               if (isDesktop)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(flex: 3, child: _buildRecentActivity(isDark, provider)),
                     const SizedBox(width: 20),
-                    Expanded(flex: 2, child: Column(
-                      children: [
-                        _buildPlatformOverview(isDark, stats),
-                        const SizedBox(height: 20),
-                        _buildQuickActions(isDark),
-                      ],
-                    )),
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        children: [
+                          _buildPlatformOverview(isDark, stats),
+                          const SizedBox(height: 20),
+                          _buildQuickActions(isDark),
+                        ],
+                      ),
+                    ),
                   ],
                 )
               else
@@ -111,28 +143,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final isMobile = width < AdminBreakpoints.mobile;
     final cards = [
       AdminStatCard(
-        title: 'Total Users', value: '${stats.totalUsers}',
-        icon: Icons.people_alt_rounded,
-        iconColor: isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0),
-        subtitle: isMobile ? '${stats.totalStudents} st · ${stats.totalFaculty} fac' : '${stats.totalStudents} students · ${stats.totalFaculty} faculty',
+        title: 'Total Users',
+        value: '${stats.totalUsers}',
+        icon: Icons.people_alt_outlined,
+        iconColor: const Color(0xFF2563EB),
+        subtitle: isMobile
+            ? '${stats.totalStudents} st · ${stats.totalFaculty} fac'
+            : '${stats.totalStudents} students · ${stats.totalFaculty} faculty',
       ),
       AdminStatCard(
-        title: 'Active Users', value: '${stats.activeUsers}',
-        icon: Icons.person_rounded,
-        iconColor: const Color(0xFF00BA7C),
-        subtitle: '${((stats.activeUsers / (stats.totalUsers > 0 ? stats.totalUsers : 1)) * 100).toStringAsFixed(0)}% active',
+        title: 'Active Users',
+        value: '${stats.activeUsers}',
+        icon: Icons.check_circle_outline_rounded,
+        iconColor: const Color(0xFF16A34A),
+        subtitle: '${((stats.activeUsers / (stats.totalUsers > 0 ? stats.totalUsers : 1)) * 100).toStringAsFixed(0)}% active rate',
       ),
       AdminStatCard(
-        title: 'Campus Events', value: '${stats.totalEvents}',
-        icon: Icons.event_rounded,
-        iconColor: isDark ? const Color(0xFFA5D6A7) : const Color(0xFF2E7D32),
-        subtitle: isMobile ? 'Active' : 'Hackathons & workshops',
+        title: 'Campus Events',
+        value: '${stats.totalEvents}',
+        icon: Icons.event_outlined,
+        iconColor: const Color(0xFFD97706),
+        subtitle: isMobile ? 'Published' : 'Hackathons & workshops',
       ),
       AdminStatCard(
-        title: 'Clubs & Teams', value: '${stats.totalOrganizations}',
-        icon: Icons.groups_rounded,
-        iconColor: isDark ? const Color(0xFFCE93D8) : const Color(0xFF7B1FA2),
-        subtitle: '${stats.totalClubs} clubs',
+        title: 'Clubs & Teams',
+        value: '${stats.totalOrganizations}',
+        icon: Icons.groups_outlined,
+        iconColor: const Color(0xFF7C3AED),
+        subtitle: '${stats.totalClubs} active clubs',
       ),
     ];
 
@@ -141,7 +179,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     if (width >= AdminBreakpoints.tablet) {
       crossAxisCount = 4;
-      childAspectRatio = 1.5;
+      childAspectRatio = 1.6;
     } else if (width >= AdminBreakpoints.mobile) {
       crossAxisCount = 2;
       childAspectRatio = 1.7;
@@ -155,8 +193,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
         childAspectRatio: childAspectRatio,
       ),
       itemCount: cards.length,
@@ -165,248 +203,401 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildRecentActivity(bool isDark, AdminDashboardProvider provider) {
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final rowDividerColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
 
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text('Recent Audit Activity', style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-              )),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E3A2F) : const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(6),
+          // Section Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                Text(
+                  'Recent Audit Activity',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
                 ),
-                child: Text('Live', style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w600,
-                  color: isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32),
-                )),
-              ),
-            ],
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF16A34A).withValues(alpha: 0.3) : const Color(0xFFBBF7D0),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF16A34A),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Live Stream',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
+          Container(height: 1, color: borderColor),
+
+          // Activity Rows
           if (provider.recentActivity.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: Text('No recent activity', style: TextStyle(
-                color: isDark ? const Color(0xFF555555) : const Color(0xFFAAAAAA), fontSize: 13,
-              ))),
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Text(
+                  'No recent activity recorded.',
+                  style: TextStyle(
+                    color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                    fontSize: 13,
+                  ),
+                ),
+              ),
             )
           else
-            ...provider.recentActivity.map((entry) {
-              IconData actionIcon;
-              Color actionColor;
-              switch (entry.action.toLowerCase()) {
-                case 'user suspended':
-                  actionIcon = Icons.block_rounded;
-                  actionColor = const Color(0xFFF59E0B);
-                  break;
-                case 'content flagged':
-                  actionIcon = Icons.flag_rounded;
-                  actionColor = const Color(0xFFEF5350);
-                  break;
-                case 'content removed':
-                  actionIcon = Icons.delete_rounded;
-                  actionColor = const Color(0xFFEF5350);
-                  break;
-                case 'new admin added':
-                case 'user added':
-                  actionIcon = Icons.person_add_rounded;
-                  actionColor = const Color(0xFF00BA7C);
-                  break;
-                case 'event created':
-                case 'event published':
-                  actionIcon = Icons.event_available_rounded;
-                  actionColor = const Color(0xFF1E88E5);
-                  break;
-                case 'notice published':
-                  actionIcon = Icons.campaign_rounded;
-                  actionColor = const Color(0xFF9C27B0);
-                  break;
-                default:
-                  actionIcon = Icons.info_outline_rounded;
-                  actionColor = isDark ? const Color(0xFF888888) : const Color(0xFF999999);
-              }
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: provider.recentActivity.length,
+              separatorBuilder: (_, __) => Container(height: 1, color: rowDividerColor),
+              itemBuilder: (context, index) {
+                final entry = provider.recentActivity[index];
+                IconData actionIcon;
+                Color actionColor;
 
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: actionColor.withValues(alpha: isDark ? 0.12 : 0.08),
-                        borderRadius: BorderRadius.circular(8),
+                switch (entry.action.toLowerCase()) {
+                  case 'user suspended':
+                    actionIcon = Icons.block_rounded;
+                    actionColor = const Color(0xFFD97706);
+                    break;
+                  case 'content flagged':
+                  case 'content removed':
+                    actionIcon = Icons.flag_outlined;
+                    actionColor = const Color(0xFFDC2626);
+                    break;
+                  case 'new admin added':
+                  case 'user added':
+                    actionIcon = Icons.person_add_outlined;
+                    actionColor = const Color(0xFF16A34A);
+                    break;
+                  case 'event created':
+                  case 'event published':
+                    actionIcon = Icons.event_available_outlined;
+                    actionColor = const Color(0xFF2563EB);
+                    break;
+                  case 'notice published':
+                    actionIcon = Icons.campaign_outlined;
+                    actionColor = const Color(0xFF7C3AED);
+                    break;
+                  default:
+                    actionIcon = Icons.info_outline_rounded;
+                    actionColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: actionColor.withValues(alpha: isDark ? 0.15 : 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(actionIcon, size: 15, color: actionColor),
                       ),
-                      child: Icon(actionIcon, size: 16, color: actionColor),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(entry.action, style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                          )),
-                          const SizedBox(height: 2),
-                          Text('${entry.performedBy} \u2192 ${entry.target}', style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? const Color(0xFF666666) : const Color(0xFF999999),
-                          )),
-                          if (entry.reason != null) ...[
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  entry.action,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '·  ${entry.performedBy}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
                             const SizedBox(height: 2),
-                            Text('Audit Note: ${entry.reason}', style: TextStyle(
-                              fontSize: 11, fontStyle: FontStyle.italic,
-                              color: isDark ? const Color(0xFF888888) : const Color(0xFF777777),
-                            )),
+                            Text(
+                              'Target: ${entry.target}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? const Color(0xFF64748B) : const Color(0xFF64748B),
+                              ),
+                            ),
+                            if (entry.reason != null && entry.reason!.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'Note: ${entry.reason}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontStyle: FontStyle.italic,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }),
+                      Text(
+                        _formatTimestamp(entry.timestamp),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );
   }
 
   Widget _buildPlatformOverview(bool isDark, dynamic stats) {
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final rowDividerColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+
     final items = [
-      {'label': 'Campus Notices', 'value': '${stats.totalNotices}', 'icon': Icons.campaign_rounded, 'color': isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0)},
-      {'label': 'Total Posts Moderated', 'value': '${stats.totalPosts}', 'icon': Icons.description_rounded, 'color': isDark ? const Color(0xFFCE93D8) : const Color(0xFF7B1FA2)},
-      {'label': 'Pending Flagged Content', 'value': '${stats.pendingReports}', 'icon': Icons.flag_rounded, 'color': isDark ? const Color(0xFFEF9A9A) : const Color(0xFFC62828)},
+      {'label': 'Campus Notices', 'value': '${stats.totalNotices}', 'icon': Icons.campaign_outlined},
+      {'label': 'Total Posts Moderated', 'value': '${stats.totalPosts}', 'icon': Icons.article_outlined},
+      {'label': 'Pending Flagged Content', 'value': '${stats.pendingReports}', 'icon': Icons.flag_outlined},
     ];
 
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Platform Overview', style: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-          )),
-          const SizedBox(height: 20),
-          ...items.map((item) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: (item['color'] as Color).withValues(alpha: isDark ? 0.12 : 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(item['icon'] as IconData, size: 18, color: item['color'] as Color),
-                ),
-                const SizedBox(width: 14),
-                Expanded(child: Text(item['label'] as String, style: TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w500,
-                  color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-                ))),
-                Text(item['value'] as String, style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                )),
-              ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Text(
+              'Platform Overview',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+              ),
             ),
-          )),
+          ),
+          Container(height: 1, color: borderColor),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => Container(height: 1, color: rowDividerColor),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                child: Row(
+                  children: [
+                    Icon(
+                      item['icon'] as IconData,
+                      size: 16,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        item['label'] as String,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor, width: 1),
+                      ),
+                      child: Text(
+                        item['value'] as String,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
   Widget _buildQuickActions(bool isDark) {
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Quick Management Actions', style: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-          )),
-          const SizedBox(height: 16),
-          _buildActionButton(isDark, Icons.download_rounded, 'Export Users (CSV)', () {
-            final csv = AdminService.generateUsersCsv();
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Generated CSV export with ${csv.split("\n").length - 1} records.'),
-              backgroundColor: const Color(0xFF00BA7C),
-            ));
-          }),
+          Text(
+            'Quick Actions',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 14),
+          _buildActionButton(
+            isDark: isDark,
+            icon: Icons.download_rounded,
+            label: 'Export Users Directory (CSV)',
+            onTap: () {
+              final csv = AdminService.generateUsersCsv();
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('Generated CSV export with ${csv.split("\n").length - 1} records.'),
+                backgroundColor: const Color(0xFF16A34A),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ));
+            },
+          ),
           const SizedBox(height: 8),
-          _buildActionButton(isDark, Icons.refresh_rounded, 'Refresh Statistics', () {
-            context.read<AdminDashboardProvider>().loadDashboard();
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Dashboard stats refreshed.'),
-              duration: Duration(seconds: 1),
-            ));
-          }),
+          _buildActionButton(
+            isDark: isDark,
+            icon: Icons.refresh_rounded,
+            label: 'Refresh Platform Metrics',
+            onTap: () {
+              context.read<AdminDashboardProvider>().loadDashboard();
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: const Text('Dashboard statistics refreshed.'),
+                duration: const Duration(seconds: 1),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ));
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton(bool isDark, IconData icon, String label, VoidCallback onTap) {
+  Widget _buildActionButton({
+    required bool isDark,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF7F7F8),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8)),
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: borderColor, width: 1),
           ),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555)),
-              const SizedBox(width: 12),
-              Text(label, style: TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w500,
-                color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-              )),
-              const Spacer(),
-              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? const Color(0xFF555555) : const Color(0xFFCCCCCC)),
+              Icon(
+                icon,
+                size: 15,
+                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 12,
+                color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _formatTimestamp(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${dt.day}/${dt.month}/${dt.year}';
   }
 }

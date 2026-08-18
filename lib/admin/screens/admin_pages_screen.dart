@@ -35,18 +35,18 @@ class _AdminPagesScreenState extends State<AdminPagesScreen> {
     }).toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AdminSearchBar(
-            hint: 'Search pages & routes...',
+            hint: 'Search platform routes & pages...',
             onChanged: (q) => setState(() => _searchQuery = q),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           AdminDataView<Map<String, dynamic>>(
             items: filtered,
-            columns: const ['Page Title', 'Route', 'Category', 'Visibility', 'Status'],
+            columns: const ['PAGE TITLE', 'ROUTE', 'CATEGORY', 'VISIBILITY', 'STATUS'],
             rowBuilder: (p) => [
               p['title'],
               p['route'],
@@ -55,13 +55,13 @@ class _AdminPagesScreenState extends State<AdminPagesScreen> {
               p['status'],
             ],
             mobileCardBuilder: (p) {
-              final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE5E7EB);
+              final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
               return Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF111111) : Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: borderColor),
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: borderColor, width: 1),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,32 +69,34 @@ class _AdminPagesScreenState extends State<AdminPagesScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(p['title'], style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: isDark ? Colors.white : Colors.black)),
+                        Text(p['title'], style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0F172A))),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00BA7C).withOpacity(0.12),
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4),
                             borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: isDark ? const Color(0xFF16A34A).withValues(alpha: 0.3) : const Color(0xFFBBF7D0)),
                           ),
-                          child: Text(p['status'], style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF00BA7C))),
+                          child: Text(p['status'], style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF15803D))),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text(p['route'], style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.black45, fontFamily: 'monospace')),
+                    Text(p['route'], style: TextStyle(fontSize: 12.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontFamily: 'monospace')),
                     const SizedBox(height: 10),
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: borderColor),
                           ),
-                          child: Text(p['type'], style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54)),
+                          child: Text(p['type'], style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569))),
                         ),
                         const SizedBox(width: 8),
-                        Text(p['visibility'], style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : Colors.black38)),
+                        Text(p['visibility'], style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                       ],
                     ),
                   ],

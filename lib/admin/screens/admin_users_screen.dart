@@ -32,8 +32,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<AdminUsersProvider>();
     final isEditor = context.watch<AdminAuthProvider>().isEditor;
-    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     if (_showingDetail && provider.selectedUser != null) {
       return AdminUserDetailScreen(
@@ -60,6 +60,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Filter & Search Controls
           LayoutBuilder(
             builder: (context, constraints) {
               final isMobile = constraints.maxWidth < AdminBreakpoints.mobile;
@@ -70,7 +71,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       children: [
                         Expanded(
                           child: AdminSearchBar(
-                            hint: 'Search by name, email, ID...',
+                            hint: 'Search users...',
                             onChanged: (q) => provider.setSearch(q),
                           ),
                         ),
@@ -90,40 +91,73 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   ],
                 );
               }
-              return Column(
+              return Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AdminSearchBar(
-                          hint: 'Search users by name, email, enrollment (BTAM...) or employee ID...',
-                          onChanged: (q) => provider.setSearch(q),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      _buildDesktopFilters(isDark, provider),
-                      const SizedBox(width: 12),
-                      _buildFilterChips(isDark),
-                      if (isEditor) ...[
-                        const SizedBox(width: 12),
-                        _buildAddUserButton(isDark),
-                      ],
-                    ],
+                  Expanded(
+                    child: AdminSearchBar(
+                      hint: 'Search by name, email, enrollment (BTAM...) or employee ID...',
+                      onChanged: (q) => provider.setSearch(q),
+                    ),
                   ),
+                  const SizedBox(width: 12),
+                  _buildDesktopFilters(isDark, provider),
+                  const SizedBox(width: 12),
+                  _buildFilterChips(isDark),
+                  if (isEditor) ...[
+                    const SizedBox(width: 12),
+                    _buildAddUserButton(isDark),
+                  ],
                 ],
               );
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
+
+          // User Table Container
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
               color: cardBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: borderColor),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderColor, width: 1),
             ),
             child: LayoutBuilder(
               builder: (context, constraints) {
+                if (provider.isLoading) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(60),
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                      ),
+                    ),
+                  );
+                }
+
+                if (filteredUsers.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(60),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.person_search_outlined, size: 36, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No user accounts match the current filters.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
                 if (constraints.maxWidth < AdminBreakpoints.mobile) {
                   return _buildMobileCards(filteredUsers, isDark, isEditor);
                 }
@@ -137,33 +171,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildAddUserButton(bool isDark) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => _showAddUserDialog(),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.person_add_rounded, size: 16, color: isDark ? const Color(0xFF1A1A1A) : Colors.white),
-              const SizedBox(width: 6),
-              Text(
-                'Add User',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
+    return ElevatedButton.icon(
+      onPressed: () => _showAddUserDialog(),
+      icon: const Icon(Icons.person_add_rounded, size: 16),
+      label: const Text('Add User'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
+        foregroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -198,22 +216,23 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     return Container(
       height: 38,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0)),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          hint: Text(hint, style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF888888) : const Color(0xFF666666))),
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-          dropdownColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          icon: Icon(Icons.arrow_drop_down, size: 18, color: isDark ? const Color(0xFF888888) : const Color(0xFF666666)),
+          hint: Text(hint, style: TextStyle(fontSize: 12.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
           items: items.map((i) => DropdownMenuItem(
             value: i == 'all' ? null : i,
             child: Text(i == 'all' ? 'All ${hint}s' : i),
@@ -225,16 +244,19 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildFilterButton(bool isDark, AdminUsersProvider provider) {
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0)),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: IconButton(
-        icon: Icon(Icons.filter_list_rounded, size: 18, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+        icon: Icon(Icons.tune_rounded, size: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
         onPressed: () => _showMobileFilterBottomSheet(isDark, provider),
         tooltip: 'Filters',
+        constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+        padding: EdgeInsets.zero,
       ),
     );
   }
@@ -242,8 +264,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   void _showMobileFilterBottomSheet(bool isDark, AdminUsersProvider provider) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF161616) : Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Padding(
           padding: const EdgeInsets.all(24),
@@ -253,26 +275,26 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             children: [
               Row(
                 children: [
-                  Text('Filters', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+                  Text('Filters', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
                   const Spacer(),
                   TextButton(
                     onPressed: () {
                       provider.clearAllFilters();
                       Navigator.pop(ctx);
                     },
-                    child: const Text('Reset All', style: TextStyle(color: Color(0xFFEF5350))),
+                    child: const Text('Reset All', style: TextStyle(color: Color(0xFFDC2626), fontSize: 13)),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Text('Course', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF888888) : const Color(0xFF666666))),
+              const SizedBox(height: 14),
+              Text('Course', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 children: AdminMockData.courses.map((c) {
                   final active = provider.courseFilter == c;
                   return ChoiceChip(
-                    label: Text(c),
+                    label: Text(c, style: const TextStyle(fontSize: 12)),
                     selected: active,
                     onSelected: (selected) {
                       setModalState(() {
@@ -282,15 +304,15 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 16),
-              Text('Branch', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF888888) : const Color(0xFF666666))),
+              const SizedBox(height: 14),
+              Text('Branch', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 children: AdminMockData.branches.map((b) {
                   final active = provider.branchFilter == b;
                   return ChoiceChip(
-                    label: Text(b),
+                    label: Text(b, style: const TextStyle(fontSize: 12)),
                     selected: active,
                     onSelected: (selected) {
                       setModalState(() {
@@ -300,18 +322,19 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                    foregroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    backgroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
+                    foregroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    elevation: 0,
                   ),
-                  child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: const Text('Apply Filters', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                 ),
               ),
             ],
@@ -322,36 +345,43 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildFilterChips(bool isDark) {
-    final filters = ['all', 'active', 'suspended', 'student', 'faculty'];
+    final filters = [
+      {'key': 'all', 'label': 'All'},
+      {'key': 'active', 'label': 'Active'},
+      {'key': 'suspended', 'label': 'Suspended'},
+      {'key': 'student', 'label': 'Students'},
+      {'key': 'faculty', 'label': 'Faculty'},
+    ];
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: filters.map((f) {
-        final isActive = _filter == f;
+        final isActive = _filter == f['key'];
         return Padding(
           padding: const EdgeInsets.only(left: 6),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () => setState(() => _filter = f),
+              borderRadius: BorderRadius.circular(6),
+              onTap: () => setState(() => _filter = f['key']!),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? (isDark ? Colors.white : const Color(0xFF1A1A1A))
-                      : (isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5)),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isActive
-                      ? Colors.transparent
-                      : (isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0))),
+                      ? (isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A))
+                      : (isDark ? const Color(0xFF0F172A) : Colors.white),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: isActive ? Colors.transparent : borderColor, width: 1),
                 ),
                 child: Text(
-                  f[0].toUpperCase() + f.substring(1),
+                  f['label']!,
                   style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                     color: isActive
-                        ? (isDark ? const Color(0xFF1A1A1A) : Colors.white)
-                        : (isDark ? const Color(0xFF999999) : const Color(0xFF666666)),
+                        ? Colors.white
+                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
                   ),
                 ),
               ),
@@ -363,27 +393,28 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildDesktopTable(List<ManagedUser> users, bool isDark, bool isEditor, Color borderColor) {
-    final headerBg = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF9F9F9);
-    final headerText = isDark ? const Color(0xFF888888) : const Color(0xFF888888);
+    final headerBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+    final headerText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final rowDivider = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
 
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
             color: headerBg,
-            borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
+            borderRadius: const BorderRadius.only(topLeft: Radius.circular(7), topRight: Radius.circular(7)),
           ),
           child: Row(
             children: [
-              Expanded(flex: 3, child: Text('User', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-              Expanded(flex: 2, child: Text('ID / Enrollment', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-              Expanded(flex: 2, child: Text('Dept / Branch', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-              Expanded(flex: 1, child: Text('Role', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-              Expanded(flex: 1, child: Text('Status', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3))),
-              Expanded(flex: 1, child: Center(child: Text('Posts', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3)))),
+              Expanded(flex: 3, child: Text('NAME & EMAIL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5))),
+              Expanded(flex: 2, child: Text('ENROLLMENT / ID', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5))),
+              Expanded(flex: 2, child: Text('DEPT / BRANCH', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5))),
+              Expanded(flex: 1, child: Text('ROLE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5))),
+              Expanded(flex: 1, child: Text('STATUS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5))),
+              Expanded(flex: 1, child: Center(child: Text('POSTS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5)))),
               if (isEditor)
-                Expanded(flex: 2, child: Align(alignment: Alignment.centerRight, child: Text('Actions', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.3)))),
+                Expanded(flex: 2, child: Align(alignment: Alignment.centerRight, child: Text('ACTIONS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5)))),
             ],
           ),
         ),
@@ -402,104 +433,174 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
                     child: Row(
                       children: [
-                        Expanded(flex: 3, child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: isDark ? const Color(0xFF252525) : const Color(0xFFF0F0F0),
-                              child: Text(user.fullName[0].toUpperCase(), style: TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                              )),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(user.fullName, style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                                ), overflow: TextOverflow.ellipsis),
-                                Text(user.email, style: TextStyle(
-                                  fontSize: 12, color: isDark ? const Color(0xFF888888) : const Color(0xFF666666),
-                                ), overflow: TextOverflow.ellipsis),
-                              ],
-                            )),
-                          ],
-                        )),
-                        Expanded(flex: 2, child: Text(
-                          user.enrollmentNumber ?? user.employeeId ?? '—',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF444444),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        )),
-                        Expanded(flex: 2, child: Text(
-                          user.branch != null ? '${user.course ?? ""} - ${user.branch}' : (user.department ?? '—'),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? const Color(0xFF888888) : const Color(0xFF666666),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        )),
-                        Expanded(flex: 1, child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(user.role, style: TextStyle(
-                            fontSize: 11, fontWeight: FontWeight.w600,
-                            color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-                          )),
-                        )),
-                        Expanded(flex: 1, child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: isUserActive
-                                ? (isDark ? const Color(0xFF1E3A2F) : const Color(0xFFE8F5E9))
-                                : (isDark ? const Color(0xFF3A1E1E) : const Color(0xFFFCE4EC)),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(user.status.toUpperCase(), style: TextStyle(
-                            fontSize: 11, fontWeight: FontWeight.w700,
-                            color: isUserActive
-                                ? (isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32))
-                                : (isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828)),
-                          )),
-                        )),
-                        Expanded(flex: 1, child: Center(child: Text('${user.postsCount}', style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-                        )))),
-                        if (isEditor)
-                          Expanded(flex: 2, child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                        Expanded(
+                          flex: 3,
+                          child: Row(
                             children: [
-                              _buildActionBtn(isDark, Icons.visibility_outlined, 'View Details', () async {
-                                await context.read<AdminUsersProvider>().selectUser(user.id);
-                                setState(() => _showingDetail = true);
-                              }),
-                              const SizedBox(width: 6),
-                              _buildActionBtn(isDark,
-                                isUserActive ? Icons.block_rounded : Icons.check_circle_outline_rounded,
-                                isUserActive ? 'Suspend' : 'Activate',
-                                () => _handleUserStatus(user),
-                                danger: isUserActive,
+                              CircleAvatar(
+                                radius: 14,
+                                backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                child: Text(
+                                  user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : 'U',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      user.fullName,
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      user.email,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
-                          )),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            user.enrollmentNumber ?? user.employeeId ?? '—',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            user.branch != null ? '${user.course ?? ""} - ${user.branch}' : (user.department ?? '—'),
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: borderColor, width: 1),
+                              ),
+                              child: Text(
+                                user.role,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isUserActive
+                                    ? (isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4))
+                                    : (isDark ? const Color(0xFF0F172A) : const Color(0xFFFEF2F2)),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: isUserActive
+                                      ? (isDark ? const Color(0xFF16A34A).withValues(alpha: 0.3) : const Color(0xFFBBF7D0))
+                                      : (isDark ? const Color(0xFFDC2626).withValues(alpha: 0.3) : const Color(0xFFFECACA)),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                user.status.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: isUserActive
+                                      ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))
+                                      : (isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Center(
+                            child: Text(
+                              '${user.postsCount}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (isEditor)
+                          Expanded(
+                            flex: 2,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                _buildActionBtn(
+                                  isDark: isDark,
+                                  icon: Icons.visibility_outlined,
+                                  label: 'View Details',
+                                  onTap: () async {
+                                    await context.read<AdminUsersProvider>().selectUser(user.id);
+                                    setState(() => _showingDetail = true);
+                                  },
+                                ),
+                                const SizedBox(width: 4),
+                                _buildActionBtn(
+                                  isDark: isDark,
+                                  icon: isUserActive ? Icons.block_outlined : Icons.check_circle_outline_rounded,
+                                  label: isUserActive ? 'Suspend Account' : 'Activate Account',
+                                  onTap: () => _handleUserStatus(user),
+                                  isDanger: isUserActive,
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
                 ),
               ),
-              Container(height: 1, color: borderColor),
+              Container(height: 1, color: rowDivider),
             ],
           );
         }),
@@ -507,24 +608,32 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
-  Widget _buildActionBtn(bool isDark, IconData icon, String label, VoidCallback onTap, {bool danger = false}) {
-    final color = danger
-        ? (isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828))
-        : (isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555));
+  Widget _buildActionBtn({
+    required bool isDark,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isDanger = false,
+  }) {
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final color = isDanger
+        ? const Color(0xFFDC2626)
+        : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569));
+
     return Tooltip(
       message: label,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(4),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0)),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: borderColor, width: 1),
             ),
-            child: Icon(icon, size: 16, color: color),
+            child: Icon(icon, size: 15, color: color),
           ),
         ),
       ),
@@ -532,7 +641,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildMobileCards(List<ManagedUser> users, bool isDark, bool isEditor) {
-    final borderColor = isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     return Column(
       children: users.map((user) {
         final isUserActive = user.status == 'active';
@@ -552,76 +661,80 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 Row(
                   children: [
                     CircleAvatar(
-                      radius: 20,
-                      backgroundColor: isDark ? const Color(0xFF252525) : const Color(0xFFF0F0F0),
-                      child: Text(user.fullName[0].toUpperCase(), style: TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                      )),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(user.fullName, style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                        )),
-                        Text(
-                          user.enrollmentNumber ?? user.employeeId ?? user.email,
-                          style: TextStyle(
-                            fontSize: 12, color: isDark ? const Color(0xFF888888) : const Color(0xFF999999),
-                          ),
+                      radius: 16,
+                      backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                      child: Text(
+                        user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : 'U',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
-                      ],
-                    )),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.fullName,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            user.enrollmentNumber ?? user.employeeId ?? user.email,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
                         color: isUserActive
-                            ? (isDark ? const Color(0xFF1E3A2F) : const Color(0xFFE8F5E9))
-                            : (isDark ? const Color(0xFF3A1E1E) : const Color(0xFFFCE4EC)),
+                            ? (isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4))
+                            : (isDark ? const Color(0xFF0F172A) : const Color(0xFFFEF2F2)),
                         borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: isUserActive
+                              ? (isDark ? const Color(0xFF16A34A).withValues(alpha: 0.3) : const Color(0xFFBBF7D0))
+                              : (isDark ? const Color(0xFFDC2626).withValues(alpha: 0.3) : const Color(0xFFFECACA)),
+                          width: 1,
+                        ),
                       ),
-                      child: Text(user.status.toUpperCase(), style: TextStyle(
-                        fontSize: 10, fontWeight: FontWeight.w700,
-                        color: isUserActive
-                            ? (isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32))
-                            : (isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828)),
-                      )),
+                      child: Text(
+                        user.status.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: isUserActive
+                              ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))
+                              : (isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     _buildMobileTag(isDark, user.role),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     if (user.branch != null) _buildMobileTag(isDark, user.branch!),
                     const Spacer(),
-                    Text('${user.postsCount} posts', style: TextStyle(
-                      fontSize: 12, color: isDark ? const Color(0xFF666666) : const Color(0xFF999999),
-                    )),
+                    Text(
+                      '${user.postsCount} posts',
+                      style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                    ),
                   ],
                 ),
-                if (isEditor) ...[
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => _handleUserStatus(user),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isUserActive
-                            ? (isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828))
-                            : (isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32)),
-                        side: BorderSide(color: isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                      child: Text(isUserActive ? 'Suspend' : 'Activate', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -631,49 +744,77 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildMobileTag(bool isDark, String text) {
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: borderColor, width: 1),
       ),
-      child: Text(text, style: TextStyle(
-        fontSize: 11, fontWeight: FontWeight.w600,
-        color: isDark ? const Color(0xFFCCCCCC) : const Color(0xFF555555),
-      )),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+        ),
+      ),
     );
   }
 
   void _handleUserStatus(ManagedUser user) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+
     if (user.status == 'active') {
       final reasonCtrl = TextEditingController();
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Suspend User Account', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: borderColor, width: 1),
+          ),
+          title: Text(
+            'Suspend User Account',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Suspend access for ${user.fullName} (${user.email}). Provide an audit reason:', style: TextStyle(color: isDark ? const Color(0xFF999999) : const Color(0xFF666666), fontSize: 14)),
-              const SizedBox(height: 14),
+              Text(
+                'Suspend access for ${user.fullName} (${user.email}). Provide an audit reason:',
+                style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13),
+              ),
+              const SizedBox(height: 12),
               TextField(
-                controller: reasonCtrl, maxLines: 3,
-                style: TextStyle(fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                controller: reasonCtrl,
+                maxLines: 3,
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                 decoration: InputDecoration(
-                  hintText: 'e.g. Violation of platform conduct rules...',
-                  hintStyle: TextStyle(color: isDark ? const Color(0xFF555555) : const Color(0xFFAAAAAA), fontSize: 13),
-                  filled: true, fillColor: isDark ? const Color(0xFF111111) : const Color(0xFFF5F5F5),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0))),
+                  hintText: 'e.g. Violation of academic integrity...',
+                  hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8), fontSize: 13),
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF999999) : const Color(0xFF666666)))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13)),
+            ),
             ElevatedButton(
               onPressed: () {
                 final reason = reasonCtrl.text.trim().isEmpty ? 'Administrative action' : reasonCtrl.text.trim();
@@ -681,8 +822,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 context.read<AdminUsersProvider>().suspendUser(user.id, reason, admin?.name ?? 'Admin');
                 Navigator.pop(ctx);
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF5350), foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('Suspend', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              ),
+              child: const Text('Suspend User', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             ),
           ],
         ),
@@ -702,29 +849,40 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     String course = 'B.Tech';
     String branch = 'AIML';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Add New User', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: borderColor, width: 1),
+          ),
+          title: Text(
+            'Add User Account',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+          ),
           content: SizedBox(
-            width: 420,
+            width: 440,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _dialogField(isDark, nameCtrl, 'Full Name'),
+                  _dialogField(isDark, nameCtrl, 'Full Name', required: true),
                   const SizedBox(height: 12),
-                  _dialogField(isDark, emailCtrl, 'Email (@acadyk.edu)'),
+                  _dialogField(isDark, emailCtrl, 'Email Address (@mitsgwl.ac.in)', required: true),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: ChoiceChip(
-                          label: const Center(child: Text('Student')),
+                          label: const Center(child: Text('Student', style: TextStyle(fontSize: 12))),
                           selected: role == 'STUDENT',
                           onSelected: (s) => setDialogState(() => role = 'STUDENT'),
                         ),
@@ -732,7 +890,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: ChoiceChip(
-                          label: const Center(child: Text('Faculty')),
+                          label: const Center(child: Text('Faculty', style: TextStyle(fontSize: 12))),
                           selected: role == 'FACULTY',
                           onSelected: (s) => setDialogState(() => role = 'FACULTY'),
                         ),
@@ -751,30 +909,36 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: course,
+                            initialValue: course,
                             decoration: InputDecoration(
                               labelText: 'Course',
+                              labelStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                               filled: true,
-                              fillColor: isDark ? const Color(0xFF111111) : const Color(0xFFF5F5F5),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             ),
-                            dropdownColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-                            items: AdminMockData.courses.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                            dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            items: AdminMockData.courses.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13)))).toList(),
                             onChanged: (v) => setDialogState(() => course = v!),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: branch,
+                            initialValue: branch,
                             decoration: InputDecoration(
                               labelText: 'Branch',
+                              labelStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                               filled: true,
-                              fillColor: isDark ? const Color(0xFF111111) : const Color(0xFFF5F5F5),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             ),
-                            dropdownColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-                            items: AdminMockData.branches.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                            dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            items: AdminMockData.branches.map((b) => DropdownMenuItem(value: b, child: Text(b, style: const TextStyle(fontSize: 13)))).toList(),
                             onChanged: (v) => setDialogState(() => branch = v!),
                           ),
                         ),
@@ -788,7 +952,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF999999) : const Color(0xFF666666)))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13)),
+            ),
             ElevatedButton(
               onPressed: () {
                 if (nameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty) return;
@@ -806,10 +973,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                foregroundColor: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                backgroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
+                foregroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
               child: const Text('Add User', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             ),
@@ -819,19 +987,21 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
-  Widget _dialogField(bool isDark, TextEditingController ctrl, String label) {
+  Widget _dialogField(bool isDark, TextEditingController ctrl, String label, {bool required = false}) {
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
     return TextField(
       controller: ctrl,
-      style: TextStyle(fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
       decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF888888) : const Color(0xFF888888)),
+        labelText: required ? '$label *' : label,
+        labelStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
         filled: true,
-        fillColor: isDark ? const Color(0xFF111111) : const Color(0xFFF5F5F5),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? const Color(0xFF252525) : const Color(0xFFE0E0E0))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: isDark ? Colors.white : const Color(0xFF0F172A), width: 1.5)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        isDense: true,
       ),
     );
   }

@@ -27,32 +27,38 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     final isSuperAdmin = context.watch<AdminAuthProvider>().isSuperAdmin;
     final settings = provider.settings;
 
-    if (provider.isLoading || settings == null) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    if (provider.isLoading) {
+      return Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+        ),
+      );
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Success/Error messages
+          // Banners
           if (provider.successMessage != null)
-            _buildBanner(provider.successMessage!, const Color(0xFF00BA7C), isDark),
+            _buildBanner(provider.successMessage!, const Color(0xFF16A34A), isDark),
           if (provider.error != null)
-            _buildBanner(provider.error!, const Color(0xFFF87171), isDark),
+            _buildBanner(provider.error!, const Color(0xFFDC2626), isDark),
 
-          // App Settings
-          _buildSection('Application Settings', isDark, [
+          // App Settings Section
+          _buildSection('Platform Metadata', isDark, [
             AdminFormRow(children: [
               AdminTextField(
-                label: 'App Name',
+                label: 'Platform Name',
                 value: settings.appName,
                 onChanged: (v) => provider.updateSettings(settings.copyWith(appName: v)),
                 enabled: isSuperAdmin,
               ),
               AdminTextField(
-                label: 'Tagline',
+                label: 'Institutional Tagline',
                 value: settings.tagline,
                 onChanged: (v) => provider.updateSettings(settings.copyWith(tagline: v)),
                 enabled: isSuperAdmin,
@@ -60,7 +66,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             ]),
             AdminFormRow(children: [
               AdminTextField(
-                label: 'Contact Email',
+                label: 'Administrative Support Email',
                 value: settings.contactEmail,
                 onChanged: (v) => provider.updateSettings(settings.copyWith(contactEmail: v)),
                 enabled: isSuperAdmin,
@@ -68,112 +74,135 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             ]),
           ]),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // Feature Flags
-          _buildSection('Feature Flags', isDark, [
+          // Feature Flags Section
+          _buildSection('Module Controls & Feature Flags', isDark, [
             AdminSwitchField(
               label: 'Maintenance Mode',
-              subtitle: 'Disables the app for all users',
+              subtitle: 'Restricts user panel access for scheduled platform maintenance',
               value: settings.maintenanceMode,
               onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(maintenanceMode: v)) : null,
             ),
             const SizedBox(height: 8),
             AdminSwitchField(
-              label: 'AI Recommendations',
-              subtitle: 'Enable AI-powered content suggestions',
+              label: 'AI Content Recommendations',
+              subtitle: 'Enable smart course and academic post suggestions',
               value: settings.enableAIRecommendations,
               onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(enableAIRecommendations: v)) : null,
             ),
             const SizedBox(height: 8),
             AdminSwitchField(
-              label: 'Real-time Chat',
-              subtitle: 'WebSocket-based messaging',
+              label: 'Real-time WebSocket Chat',
+              subtitle: 'Campus peer-to-peer and club group messaging',
               value: settings.enableRealtimeChat,
               onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(enableRealtimeChat: v)) : null,
             ),
             const SizedBox(height: 8),
             AdminSwitchField(
-              label: 'Startups',
-              subtitle: 'Student startup showcase feature',
+              label: 'Campus Startups & Incubator',
+              subtitle: 'Student entrepreneurship & project showcase directory',
               value: settings.enableStartups,
               onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(enableStartups: v)) : null,
             ),
-            const SizedBox(height: 8),
-            AdminSwitchField(
-              label: 'Leaderboard',
-              subtitle: 'Gamified ranking system',
-              value: settings.enableLeaderboard,
-              onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(enableLeaderboard: v)) : null,
-            ),
-            const SizedBox(height: 8),
-            AdminSwitchField(
-              label: 'Events',
-              subtitle: 'Campus event discovery',
-              value: settings.enableEvents,
-              onChanged: isSuperAdmin ? (v) => provider.updateSettings(settings.copyWith(enableEvents: v)) : null,
-            ),
           ]),
 
-          if (isSuperAdmin) ...[
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: provider.isSaving ? null : () => provider.saveSettings(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? Colors.white : Colors.black,
-                  foregroundColor: isDark ? Colors.black : Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: provider.isSaving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Save Settings', style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
+          const SizedBox(height: 20),
+
+          // System Info
+          _buildSection('Infrastructure & Build', isDark, [
+            _buildInfoRow('Environment', 'Production (AWS Cloud)', isDark),
+            _buildInfoRow('API Endpoint', 'http://15.252.182.118:8080/api/v1', isDark),
+            _buildInfoRow('Database', 'PostgreSQL 16 (Relational)', isDark),
+            _buildInfoRow('Backend Service', 'Spring Boot 3.3.0 · Kotlin 1.9', isDark),
+            _buildInfoRow('Admin Interface', 'v1.0.0 (Enterprise Academic Edition)', isDark),
+          ]),
         ],
       ),
     );
   }
 
   Widget _buildSection(String title, bool isDark, List<Widget> children) {
-    final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE5E7EB);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF111111) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : Colors.black,
-          )),
-          const SizedBox(height: 20),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 16),
           ...children,
         ],
       ),
     );
   }
 
+  Widget _buildInfoRow(String label, String value, bool isDark) {
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBanner(String message, Color color, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Text(message, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w500)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.15 : 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, size: 16, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: color),
+            ),
+          ),
+        ],
       ),
     );
   }

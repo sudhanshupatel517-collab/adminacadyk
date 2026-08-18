@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../common/providers/auth_provider.dart';
-import '../common/providers/profile_provider.dart';
 import '../common/providers/theme_provider.dart';
 import 'router/app_router.dart';
 
