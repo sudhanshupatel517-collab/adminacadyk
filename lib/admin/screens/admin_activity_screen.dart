@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../providers/admin_dashboard_provider.dart';
 import '../data/admin_models.dart';
 import '../widgets/admin_responsive.dart';
+import '../widgets/admin_filter_chips.dart';
+import '../widgets/admin_section_header.dart';
+import '../../app/theme/app_colors.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class AdminActivityScreen extends StatefulWidget {
@@ -28,8 +31,8 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<AdminDashboardProvider>();
-    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final cardBg = AppColors.surfaceColor(isDark);
+    final borderColor = AppColors.border(isDark);
 
     final entries = provider.recentActivity.where((entry) {
       if (_categoryFilter == 'all') return true;
@@ -42,9 +45,9 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
     if (provider.state == LoadState.loading) {
       return Center(
         child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.text(isDark)),
         ),
       );
     }
@@ -54,24 +57,31 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header & Filter Bar
-          Row(
-            children: [
-              _buildFilterChips(isDark),
-              const Spacer(),
-              OutlinedButton.icon(
-                onPressed: () => provider.loadDashboard(),
-                icon: Icon(Icons.refresh_rounded, size: 15, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                label: Text('Refresh Audit Log', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: borderColor),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
+          // Section Heading
+          AdminSectionHeader(
+            title: 'System Activity & Audit Trail',
+            padding: const EdgeInsets.only(bottom: 16),
+            trailing: OutlinedButton(
+              onPressed: () => provider.loadDashboard(),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
-            ],
+              child: const Text('Refresh Log'),
+            ),
           ),
-          const SizedBox(height: 18),
+
+          // Header & Filter Bar
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: AdminFilterChips(
+              filters: const ['all', 'users', 'content', 'events'],
+              selected: _categoryFilter,
+              onSelected: (f) => setState(() => _categoryFilter = f),
+            ),
+          ),
+          const SizedBox(height: 16),
 
           if (entries.isEmpty)
             Container(
@@ -79,19 +89,13 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
               padding: const EdgeInsets.all(60),
               decoration: BoxDecoration(
                 color: cardBg,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: borderColor, width: 1),
               ),
               child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.history_rounded, size: 36, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No audit logs match the current filter criteria.',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                    ),
-                  ],
+                child: Text(
+                  'No audit logs match the current filter criteria.',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSec(isDark)),
                 ),
               ),
             )
@@ -111,72 +115,25 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
     );
   }
 
-  Widget _buildFilterChips(bool isDark) {
-    final filters = [
-      {'key': 'all', 'label': 'All Audit Logs'},
-      {'key': 'users', 'label': 'User Management'},
-      {'key': 'content', 'label': 'Content Moderation'},
-      {'key': 'events', 'label': 'Events & Notices'},
-    ];
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: filters.map((f) {
-        final isActive = _categoryFilter == f['key'];
-        return Padding(
-          padding: const EdgeInsets.only(right: 6),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(6),
-              onTap: () => setState(() => _categoryFilter = f['key']!),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? (isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A))
-                      : (isDark ? const Color(0xFF0F172A) : Colors.white),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: isActive ? Colors.transparent : borderColor, width: 1),
-                ),
-                child: Text(
-                  f['label']!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                    color: isActive
-                        ? Colors.white
-                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
   Widget _buildDesktopTable(List<ActivityLogEntry> entries, bool isDark, Color cardBg, Color borderColor) {
-    final headerBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final headerText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final rowDivider = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+    final headerBg = AppColors.surfaceAlt(isDark);
+    final headerText = AppColors.textSec(isDark);
+    final rowDivider = AppColors.borderSubtle(isDark);
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
             decoration: BoxDecoration(
               color: headerBg,
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(7), topRight: Radius.circular(7)),
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(5), topRight: Radius.circular(5)),
             ),
             child: Row(
               children: [
@@ -199,27 +156,19 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
             return Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                   child: Row(
                     children: [
                       Expanded(
                         flex: 3,
-                        child: Row(
-                          children: [
-                            Icon(Icons.terminal_rounded, size: 14, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                item.action,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          item.action,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.text(isDark),
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Expanded(
@@ -229,19 +178,28 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
                           style: TextStyle(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w500,
-                            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                            color: AppColors.textSec(isDark),
                           ),
                         ),
                       ),
                       Expanded(
                         flex: 3,
-                        child: Text(
-                          item.target,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.target,
+                              style: TextStyle(fontSize: 12.5, color: AppColors.text(isDark)),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (item.reason != null && item.reason!.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                item.reason!,
+                                style: TextStyle(fontSize: 11.5, color: AppColors.textMut(isDark), fontStyle: FontStyle.italic),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       Expanded(
@@ -251,8 +209,8 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
                           child: Text(
                             timeAgo,
                             style: TextStyle(
-                              fontSize: 12,
-                              color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                              fontSize: 11.5,
+                              color: AppColors.textMut(isDark),
                             ),
                           ),
                         ),
@@ -287,8 +245,8 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
         return Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            color: AppColors.surfaceColor(isDark),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: borderColor, width: 1),
           ),
           child: Column(
@@ -299,25 +257,21 @@ class _AdminActivityScreenState extends State<AdminActivityScreen> {
                   Expanded(
                     child: Text(
                       item.action,
-                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text(isDark)),
                     ),
                   ),
-                  Text(timeAgo, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8))),
+                  Text(timeAgo, style: TextStyle(fontSize: 11, color: AppColors.textMut(isDark))),
                 ],
               ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Text(
-                    'By: ${item.performedBy}',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
-                  ),
-                  const Spacer(),
-                  Text(
-                    item.target,
-                    style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                  ),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                'Performed by: ${item.performedBy}',
+                style: TextStyle(fontSize: 12, color: AppColors.textSec(isDark)),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Target: ${item.target}',
+                style: TextStyle(fontSize: 12, color: AppColors.textMut(isDark)),
               ),
             ],
           ),

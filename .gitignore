@@ -8,3 +8,9 @@
 .idea/
 *.iml
 .vscode/
+
+# Build caches
+build/flutter_assets/
+build/*.dill
+build/*/*.dill
+build/3*/

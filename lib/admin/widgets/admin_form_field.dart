@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'admin_responsive.dart';
+import '../../app/theme/app_colors.dart';
 
 class AdminFormRow extends StatelessWidget {
   final List<Widget> children;
@@ -54,7 +55,6 @@ class AdminTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,9 +62,9 @@ class AdminTextField extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 12.5,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+            color: AppColors.textSec(isDark),
           ),
         ),
         const SizedBox(height: 6),
@@ -73,21 +73,25 @@ class AdminTextField extends StatelessWidget {
           onChanged: onChanged,
           maxLines: maxLines,
           enabled: enabled,
-          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+          style: TextStyle(fontSize: 13, color: AppColors.text(isDark)),
           decoration: InputDecoration(
             filled: true,
-            fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            fillColor: AppColors.surfaceAlt(isDark),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(color: borderColor),
+              borderSide: BorderSide(color: AppColors.border(isDark)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(color: borderColor),
+              borderSide: BorderSide(color: AppColors.border(isDark)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(color: isDark ? Colors.white : const Color(0xFF0F172A), width: 1.5),
+              borderSide: BorderSide(color: AppColors.text(isDark), width: 1.5),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(color: AppColors.borderSubtle(isDark)),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             isDense: true,
@@ -115,14 +119,13 @@ class AdminSwitchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        color: AppColors.surfaceAlt(isDark),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: borderColor, width: 1),
+        border: Border.all(color: AppColors.border(isDark), width: 1),
       ),
       child: Row(
         children: [
@@ -135,7 +138,7 @@ class AdminSwitchField extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    color: AppColors.text(isDark),
                   ),
                 ),
                 if (subtitle != null)
@@ -145,7 +148,7 @@ class AdminSwitchField extends StatelessWidget {
                       subtitle!,
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        color: AppColors.textMut(isDark),
                       ),
                     ),
                   ),
@@ -155,7 +158,7 @@ class AdminSwitchField extends StatelessWidget {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeTrackColor: isDark ? Colors.white : const Color(0xFF0F172A),
+            activeTrackColor: isDark ? Colors.white : AppColors.brand,
           ),
         ],
       ),

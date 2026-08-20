@@ -1,51 +1,64 @@
 import 'package:flutter/material.dart';
+import '../../app/theme/app_colors.dart';
 
+/// Clean enterprise empty state.
+/// Pure typography without decorative icon graphics.
 class AdminEmptyState extends StatelessWidget {
-  final IconData icon;
   final String title;
   final String? subtitle;
-  final VoidCallback? onRetry;
+  final IconData? icon;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   const AdminEmptyState({
     super.key,
-    required this.icon,
     required this.title,
     this.subtitle,
-    this.onRetry,
+    this.icon,
+    this.actionLabel,
+    this.onAction,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: isDark ? Colors.white24 : Colors.black12),
-            const SizedBox(height: 16),
-            Text(title, style: TextStyle(
-              fontSize: 16, fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white70 : Colors.black54,
-            )),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.text(isDark),
+              ),
+              textAlign: TextAlign.center,
+            ),
             if (subtitle != null) ...[
-              const SizedBox(height: 8),
-              Text(subtitle!, style: TextStyle(
-                fontSize: 13, color: isDark ? Colors.white38 : Colors.black38,
-              ), textAlign: TextAlign.center),
-            ],
-            if (onRetry != null) ...[
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Retry'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: isDark ? Colors.white : Colors.black,
-                  side: BorderSide(color: isDark ? Colors.white24 : Colors.black26),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              const SizedBox(height: 6),
+              Text(
+                subtitle!,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.textSec(isDark),
                 ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: onAction,
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                child: Text(actionLabel!),
               ),
             ],
           ],

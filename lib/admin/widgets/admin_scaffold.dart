@@ -3,18 +3,15 @@ import 'package:provider/provider.dart';
 import 'admin_responsive.dart';
 import '../providers/admin_auth_provider.dart';
 import '../../common/providers/theme_provider.dart';
+import '../../app/theme/app_colors.dart';
 
 class AdminNavItem {
   final String label;
-  final IconData icon;
-  final IconData activeIcon;
   final String routeKey;
   final String section;
 
   const AdminNavItem({
     required this.label,
-    required this.icon,
-    required this.activeIcon,
     required this.routeKey,
     this.section = 'MAIN',
   });
@@ -33,15 +30,15 @@ class AdminScaffold extends StatefulWidget {
   });
 
   static const List<AdminNavItem> navItems = [
-    AdminNavItem(label: 'Dashboard', icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard_rounded, routeKey: 'dashboard', section: 'OVERVIEW'),
-    AdminNavItem(label: 'Users', icon: Icons.people_outline_rounded, activeIcon: Icons.people_rounded, routeKey: 'users', section: 'MANAGEMENT'),
-    AdminNavItem(label: 'Events', icon: Icons.event_outlined, activeIcon: Icons.event_rounded, routeKey: 'events', section: 'MANAGEMENT'),
-    AdminNavItem(label: 'Organizations', icon: Icons.groups_outlined, activeIcon: Icons.groups_rounded, routeKey: 'organizations', section: 'MANAGEMENT'),
-    AdminNavItem(label: 'Notices', icon: Icons.campaign_outlined, activeIcon: Icons.campaign_rounded, routeKey: 'notices', section: 'COMMUNICATIONS'),
-    AdminNavItem(label: 'Content', icon: Icons.article_outlined, activeIcon: Icons.article_rounded, routeKey: 'content', section: 'COMMUNICATIONS'),
-    AdminNavItem(label: 'Analytics', icon: Icons.insights_outlined, activeIcon: Icons.insights_rounded, routeKey: 'analytics', section: 'SYSTEM'),
-    AdminNavItem(label: 'Activity Log', icon: Icons.history_rounded, activeIcon: Icons.history_rounded, routeKey: 'activity', section: 'SYSTEM'),
-    AdminNavItem(label: 'Settings', icon: Icons.settings_outlined, activeIcon: Icons.settings_rounded, routeKey: 'settings', section: 'SYSTEM'),
+    AdminNavItem(label: 'Dashboard', routeKey: 'dashboard', section: 'OVERVIEW'),
+    AdminNavItem(label: 'Users', routeKey: 'users', section: 'MANAGEMENT'),
+    AdminNavItem(label: 'Events', routeKey: 'events', section: 'MANAGEMENT'),
+    AdminNavItem(label: 'Organizations', routeKey: 'organizations', section: 'MANAGEMENT'),
+    AdminNavItem(label: 'Notices', routeKey: 'notices', section: 'COMMUNICATIONS'),
+    AdminNavItem(label: 'Content', routeKey: 'content', section: 'COMMUNICATIONS'),
+    AdminNavItem(label: 'Analytics', routeKey: 'analytics', section: 'SYSTEM'),
+    AdminNavItem(label: 'Activity Log', routeKey: 'activity', section: 'SYSTEM'),
+    AdminNavItem(label: 'Settings', routeKey: 'settings', section: 'SYSTEM'),
   ];
 
   @override
@@ -57,17 +54,14 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     final isMobile = AdminBreakpoints.isMobile(context);
     final isTablet = AdminBreakpoints.isTablet(context);
 
-    final sidebarBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFFFFFFF);
-    final contentBg = isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC);
-
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: contentBg,
+      backgroundColor: AppColors.bg(isDark),
       appBar: isMobile ? _buildMobileAppBar(isDark) : null,
       drawer: isMobile ? _buildProfileDrawer(isDark) : null,
       body: Row(
         children: [
-          if (!isMobile) _buildSidebar(isDark, isTablet, sidebarBg),
+          if (!isMobile) _buildSidebar(isDark, isTablet),
           Expanded(
             child: Column(
               children: [
@@ -82,12 +76,12 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
+  // ─── Mobile App Bar ───
   PreferredSizeWidget _buildMobileAppBar(bool isDark) {
     final admin = context.watch<AdminAuthProvider>().currentAdmin;
-    final borderColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
 
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      backgroundColor: AppColors.surfaceColor(isDark),
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       automaticallyImplyLeading: false,
@@ -95,32 +89,21 @@ class _AdminScaffoldState extends State<AdminScaffold> {
         onTap: () => _scaffoldKey.currentState?.openDrawer(),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: CircleAvatar(
-            radius: 16,
-            backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-            child: Text(
-              admin?.name.isNotEmpty == true ? admin!.name[0].toUpperCase() : 'A',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
-              ),
-            ),
-          ),
+          child: _buildAvatar(admin?.name, 16, isDark),
         ),
       ),
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildLogo(24),
+          _buildLogo(22),
           const SizedBox(width: 8),
           Text(
             'Acadyk Admin',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              color: AppColors.text(isDark),
             ),
           ),
         ],
@@ -132,38 +115,28 @@ class _AdminScaffoldState extends State<AdminScaffold> {
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: borderColor),
+        child: Container(height: 1, color: AppColors.border(isDark)),
       ),
     );
   }
 
+  // ─── Mobile Drawer ───
   Widget _buildProfileDrawer(bool isDark) {
     final admin = context.watch<AdminAuthProvider>().currentAdmin;
-    final borderColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
 
     return Drawer(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-      width: 280,
+      backgroundColor: AppColors.surfaceColor(isDark),
+      width: 272,
       shape: const RoundedRectangleBorder(),
       child: SafeArea(
         child: Column(
           children: [
+            // Profile header
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                    child: Text(
-                      admin?.name.isNotEmpty == true ? admin!.name[0].toUpperCase() : 'A',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                      ),
-                    ),
-                  ),
+                  _buildAvatar(admin?.name, 20, isDark),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -174,18 +147,18 @@ class _AdminScaffoldState extends State<AdminScaffold> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color: AppColors.text(isDark),
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Text(
-                          admin?.role ?? 'SUPER_ADMIN',
+                          _formatRole(admin?.role),
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textMut(isDark),
                           ),
                         ),
                       ],
@@ -194,10 +167,10 @@ class _AdminScaffoldState extends State<AdminScaffold> {
                 ],
               ),
             ),
-            Container(height: 1, color: borderColor),
+            Container(height: 1, color: AppColors.border(isDark)),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 children: AdminScaffold.navItems.map((item) {
                   final isActive = widget.currentRoute == item.routeKey;
                   return _buildDrawerItem(isDark, item, isActive, () {
@@ -207,37 +180,11 @@ class _AdminScaffoldState extends State<AdminScaffold> {
                 }).toList(),
               ),
             ),
-            Container(height: 1, color: borderColor),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(6),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _handleLogout();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout_rounded, size: 18, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Sign Out',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            Container(height: 1, color: AppColors.border(isDark)),
+            _buildSignOutRow(isDark, () {
+              Navigator.pop(context);
+              _handleLogout();
+            }),
           ],
         ),
       ),
@@ -250,37 +197,22 @@ class _AdminScaffoldState extends State<AdminScaffold> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(4),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: isActive
-                  ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9))
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
+              color: isActive ? AppColors.surfaceAlt(isDark) : Colors.transparent,
+              borderRadius: BorderRadius.circular(4),
+              border: isActive ? Border(left: BorderSide(color: AppColors.text(isDark), width: 3)) : null,
             ),
-            child: Row(
-              children: [
-                Icon(
-                  isActive ? item.activeIcon : item.icon,
-                  size: 18,
-                  color: isActive
-                      ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                      : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  item.label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                    color: isActive
-                        ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
-                  ),
-                ),
-              ],
+            child: Text(
+              item.label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                color: isActive ? AppColors.text(isDark) : AppColors.textSec(isDark),
+              ),
             ),
           ),
         ),
@@ -288,9 +220,9 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  Widget _buildSidebar(bool isDark, bool isCompact, Color bgColor) {
-    final width = isCompact ? 68.0 : 240.0;
-    final borderColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+  // ─── Desktop Sidebar ───
+  Widget _buildSidebar(bool isDark, bool isCompact) {
+    final width = isCompact ? 100.0 : 220.0;
 
     // Group nav items by section
     final Map<String, List<AdminNavItem>> sections = {};
@@ -301,80 +233,66 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     return Container(
       width: width,
       decoration: BoxDecoration(
-        color: bgColor,
-        border: Border(right: BorderSide(color: borderColor, width: 1)),
+        color: AppColors.surfaceColor(isDark),
+        border: Border(right: BorderSide(color: AppColors.border(isDark), width: 1)),
       ),
       child: Column(
         children: [
-          // Sidebar Brand Header
+          // Brand header
           Container(
-            height: 56,
-            padding: EdgeInsets.symmetric(horizontal: isCompact ? 0 : 18),
-            alignment: isCompact ? Alignment.center : Alignment.centerLeft,
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.centerLeft,
             child: Row(
-              mainAxisSize: isCompact ? MainAxisSize.min : MainAxisSize.max,
               children: [
-                _buildLogo(isCompact ? 24 : 26),
-                if (!isCompact) ...[
-                  const SizedBox(width: 10),
-                  Text(
-                    'Acadyk',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 17,
-                      letterSpacing: -0.4,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    ),
+                _buildLogo(22),
+                const SizedBox(width: 10),
+                Text(
+                  'Acadyk',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    letterSpacing: -0.3,
+                    color: AppColors.text(isDark),
                   ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: borderColor, width: 1),
-                    ),
-                    child: Text(
-                      'Admin',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                      ),
-                    ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Admin',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMut(isDark),
                   ),
-                ],
+                ),
               ],
             ),
           ),
-          Container(height: 1, color: borderColor),
+          Container(height: 1, color: AppColors.border(isDark)),
 
-          // Nav Items List
+          // Nav items
           Expanded(
             child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 10, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               children: [
                 for (var entry in sections.entries) ...[
-                  if (!isCompact)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(10, 12, 10, 6),
-                      child: Text(
-                        entry.key,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-                          letterSpacing: 0.8,
-                        ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 14, 10, 5),
+                    child: Text(
+                      entry.key,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textMut(isDark),
+                        letterSpacing: 0.8,
                       ),
                     ),
+                  ),
                   ...entry.value.map((item) {
                     final isActive = widget.currentRoute == item.routeKey;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 2),
-                      child: isCompact
-                          ? _buildCompactNavItem(item, isActive, isDark)
-                          : _buildFullNavItem(item, isActive, isDark),
+                      child: _buildFullNavItem(item, isActive, isDark),
                     );
                   }),
                 ],
@@ -382,43 +300,9 @@ class _AdminScaffoldState extends State<AdminScaffold> {
             ),
           ),
 
-          // Sidebar Footer / Sign out
-          Container(height: 1, color: borderColor),
-          Padding(
-            padding: EdgeInsets.all(isCompact ? 8 : 10),
-            child: isCompact
-                ? Tooltip(
-                    message: 'Sign Out',
-                    child: IconButton(
-                      icon: Icon(Icons.logout_rounded, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                      onPressed: () => _handleLogout(),
-                    ),
-                  )
-                : Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(6),
-                      onTap: () => _handleLogout(),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                        child: Row(
-                          children: [
-                            Icon(Icons.logout_rounded, size: 16, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Sign Out',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-          ),
+          // Sign out
+          Container(height: 1, color: AppColors.border(isDark)),
+          _buildSignOutRow(isDark, _handleLogout),
         ],
       ),
     );
@@ -428,47 +312,36 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(4),
         onTap: () => widget.onNavigate(item.routeKey),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
-            color: isActive
-                ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9))
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
+            color: isActive ? AppColors.surfaceAlt(isDark) : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
           ),
           child: Row(
             children: [
-              Icon(
-                isActive ? item.activeIcon : item.icon,
-                size: 18,
-                color: isActive
-                    ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                item.label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isActive
-                      ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                      : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+              Container(
+                width: 3,
+                height: 14,
+                margin: const EdgeInsets.only(right: 10),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.text(isDark) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              if (isActive) ...[
-                const Spacer(),
-                Container(
-                  width: 4,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    shape: BoxShape.circle,
+              Expanded(
+                child: Text(
+                  item.label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                    color: isActive ? AppColors.text(isDark) : AppColors.textSec(isDark),
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -476,109 +349,65 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
-  Widget _buildCompactNavItem(AdminNavItem item, bool isActive, bool isDark) {
-    return Tooltip(
-      message: item.label,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: () => widget.onNavigate(item.routeKey),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9))
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Center(
-              child: Icon(
-                isActive ? item.activeIcon : item.icon,
-                size: 19,
-                color: isActive
-                    ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
+  // ─── Desktop Top Bar ───
   Widget _buildDesktopTopBar(bool isDark) {
     final admin = context.watch<AdminAuthProvider>().currentAdmin;
-    final borderColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
 
     return Container(
-      height: 56,
+      height: 52,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.white,
-        border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+        color: AppColors.surfaceColor(isDark),
+        border: Border(bottom: BorderSide(color: AppColors.border(isDark), width: 1)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          // Page Title & Subtitle Breadcrumb
+          // Page title + breadcrumb
           Text(
             _routeToTitle(widget.currentRoute),
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14.5,
               fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              letterSpacing: -0.2,
+              color: AppColors.text(isDark),
             ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            '/',
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
-            ),
+          const SizedBox(width: 10),
+          Container(
+            width: 1,
+            height: 14,
+            color: AppColors.border(isDark),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Text(
             _routeToSubtitle(widget.currentRoute),
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              color: AppColors.textMut(isDark),
             ),
           ),
 
           const Spacer(),
 
-          // Theme Mode Toggle
+          // Theme toggle text button
           _buildThemeToggle(isDark),
           const SizedBox(width: 12),
 
-          // Administrator Profile Badge
+          // Profile
           GestureDetector(
             onTap: () => _showProfileMenu(isDark, admin),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: borderColor, width: 1),
+                color: AppColors.surfaceAlt(isDark),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: AppColors.border(isDark), width: 1),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                    child: Text(
-                      admin?.name.isNotEmpty == true ? admin!.name[0].toUpperCase() : 'A',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                      ),
-                    ),
-                  ),
+                  _buildAvatar(admin?.name, 11, isDark),
                   const SizedBox(width: 8),
                   Column(
                     mainAxisSize: MainAxisSize.min,
@@ -589,24 +418,18 @@ class _AdminScaffoldState extends State<AdminScaffold> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color: AppColors.text(isDark),
                         ),
                       ),
                       Text(
-                        admin?.role ?? 'VIEWER',
+                        _formatRole(admin?.role),
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: FontWeight.w500,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: AppColors.textMut(isDark),
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: 16,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                   ),
                 ],
               ),
@@ -617,28 +440,31 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
+  // ─── Theme Toggle (Text-First) ───
   Widget _buildThemeToggle(bool isDark) {
-    final borderColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      child: IconButton(
-        icon: Icon(
-          isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-          size: 16,
-          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+    return InkWell(
+      borderRadius: BorderRadius.circular(4),
+      onTap: _toggleTheme,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceAlt(isDark),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: AppColors.border(isDark), width: 1),
         ),
-        onPressed: () => _toggleTheme(),
-        tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-        padding: EdgeInsets.zero,
+        child: Text(
+          isDark ? 'Light Mode' : 'Dark Mode',
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSec(isDark),
+          ),
+        ),
       ),
     );
   }
 
+  // ─── Bottom Nav (Mobile) ───
   Widget _buildBottomNav(bool isDark) {
     final bottomItems = [
       AdminScaffold.navItems[0], // Dashboard
@@ -647,16 +473,15 @@ class _AdminScaffoldState extends State<AdminScaffold> {
       AdminScaffold.navItems[4], // Notices
       AdminScaffold.navItems[8], // Settings
     ];
-    final borderColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : Colors.white,
-        border: Border(top: BorderSide(color: borderColor, width: 1)),
+        color: AppColors.surfaceColor(isDark),
+        border: Border(top: BorderSide(color: AppColors.border(isDark), width: 1)),
       ),
       child: SafeArea(
         child: SizedBox(
-          height: 54,
+          height: 48,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(bottomItems.length, (index) {
@@ -667,28 +492,22 @@ class _AdminScaffoldState extends State<AdminScaffold> {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () => widget.onNavigate(item.routeKey),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isActive ? item.activeIcon : item.icon,
-                          size: 20,
-                          color: isActive
-                              ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                              : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: isActive ? AppColors.surfaceAlt(isDark) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
+                        child: Text(
                           item.label,
                           style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                            color: isActive
-                                ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                                : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                            fontSize: 11.5,
+                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                            color: isActive ? AppColors.text(isDark) : AppColors.textMut(isDark),
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -699,6 +518,8 @@ class _AdminScaffoldState extends State<AdminScaffold> {
       ),
     );
   }
+
+  // ─── Shared Helpers ───
 
   Widget _buildLogo(double size) {
     return ClipRRect(
@@ -712,7 +533,7 @@ class _AdminScaffoldState extends State<AdminScaffold> {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A),
+            color: AppColors.brand,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Center(
@@ -730,6 +551,56 @@ class _AdminScaffoldState extends State<AdminScaffold> {
     );
   }
 
+  Widget _buildAvatar(String? name, double radius, bool isDark) {
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: AppColors.surfaceAlt(isDark),
+      child: Text(
+        name?.isNotEmpty == true ? name![0].toUpperCase() : 'A',
+        style: TextStyle(
+          fontSize: radius * 0.85,
+          fontWeight: FontWeight.w700,
+          color: AppColors.text(isDark),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignOutRow(bool isDark, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(4),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Sign Out',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textMut(isDark),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatRole(String? role) {
+    if (role == null || role.isEmpty) return 'Viewer';
+    return role.replaceAll('_', ' ').split(' ').map((w) {
+      if (w.isEmpty) return w;
+      return w[0].toUpperCase() + w.substring(1).toLowerCase();
+    }).join(' ');
+  }
+
   void _toggleTheme() {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -737,15 +608,14 @@ class _AdminScaffoldState extends State<AdminScaffold> {
   }
 
   void _showProfileMenu(bool isDark, dynamic admin) {
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     showMenu(
       context: context,
-      position: const RelativeRect.fromLTRB(1000, 56, 24, 0),
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      position: const RelativeRect.fromLTRB(1000, 52, 24, 0),
+      color: AppColors.surfaceColor(isDark),
       elevation: 4,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: borderColor, width: 1),
+        borderRadius: BorderRadius.circular(4),
+        side: BorderSide(color: AppColors.border(isDark), width: 1),
       ),
       items: <PopupMenuEntry<dynamic>>[
         PopupMenuItem<dynamic>(
@@ -755,18 +625,11 @@ class _AdminScaffoldState extends State<AdminScaffold> {
             children: [
               Text(
                 admin?.name ?? 'Administrator',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.text(isDark)),
               ),
               Text(
                 admin?.email ?? '',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                ),
+                style: TextStyle(fontSize: 11, color: AppColors.textMut(isDark)),
               ),
             ],
           ),
@@ -774,19 +637,11 @@ class _AdminScaffoldState extends State<AdminScaffold> {
         const PopupMenuDivider(),
         PopupMenuItem<dynamic>(
           onTap: () => widget.onNavigate('settings'),
-          child: Row(children: [
-            Icon(Icons.tune_rounded, size: 16, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
-            const SizedBox(width: 10),
-            Text('Settings', style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569))),
-          ]),
+          child: Text('Settings', style: TextStyle(fontSize: 13, color: AppColors.textSec(isDark))),
         ),
         PopupMenuItem<dynamic>(
-          onTap: () => _handleLogout(),
-          child: Row(children: [
-            Icon(Icons.logout_rounded, size: 16, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
-            const SizedBox(width: 10),
-            Text('Sign Out', style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))),
-          ]),
+          onTap: _handleLogout,
+          child: Text('Sign Out', style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFF87171) : AppColors.error)),
         ),
       ],
     );
@@ -827,32 +682,36 @@ class _AdminScaffoldState extends State<AdminScaffold> {
       context: context,
       builder: (ctx) {
         final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
         return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          backgroundColor: AppColors.surfaceColor(isDark),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(color: borderColor, width: 1),
+            borderRadius: BorderRadius.circular(6),
+            side: BorderSide(color: AppColors.border(isDark), width: 1),
           ),
           title: Text(
             'Sign Out',
             style: TextStyle(
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              color: AppColors.text(isDark),
               fontWeight: FontWeight.w600,
-              fontSize: 16,
+              fontSize: 15,
             ),
           ),
           content: Text(
             'Are you sure you want to end your administrative session?',
             style: TextStyle(
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-              fontSize: 13,
+              color: AppColors.textSec(isDark),
+              fontSize: 12.5,
             ),
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppColors.border(isDark)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
+              child: Text('Cancel', style: TextStyle(color: AppColors.textSec(isDark), fontSize: 12.5, fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -860,13 +719,13 @@ class _AdminScaffoldState extends State<AdminScaffold> {
                 context.read<AdminAuthProvider>().logout();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
-                foregroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                backgroundColor: isDark ? Colors.white : AppColors.brand,
+                foregroundColor: isDark ? AppColors.brand : Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
             ),
           ],
         );

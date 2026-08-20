@@ -97,11 +97,19 @@ class ManagedUser {
   final DateTime lastActive;
   int postsCount;
 
-  // Institutional fields
+  // Personal Details
+  DateTime? dateOfBirth;
+  String? fatherName;
+  String? fatherMobile;
+  String? currentAddress;
+
+  // Academic / Admission Details
   String? enrollmentNumber; // e.g. BTAM25O1062
   String? employeeId; // e.g. EMP1025
   String? course; // e.g. B.Tech
   String? branch; // e.g. AIML, CSE, ECE
+  DateTime? admissionDate;
+  DateTime? registrationDate;
   int? year;
   int? semester;
   String? batch; // e.g. 2025-2029
@@ -127,10 +135,16 @@ class ManagedUser {
     required this.joinedAt,
     required this.lastActive,
     this.postsCount = 0,
+    this.dateOfBirth,
+    this.fatherName,
+    this.fatherMobile,
+    this.currentAddress,
     this.enrollmentNumber,
     this.employeeId,
     this.course,
     this.branch,
+    this.admissionDate,
+    this.registrationDate,
     this.year,
     this.semester,
     this.batch,
@@ -146,39 +160,86 @@ class ManagedUser {
         teamIds = teamIds ?? [],
         eventIds = eventIds ?? [];
 
+  bool get isStudent => role.toUpperCase() == 'STUDENT';
+  bool get isFaculty => role.toUpperCase() == 'FACULTY';
+  bool get isActive => status.toLowerCase() == 'active';
+  bool get isSuspended => status.toLowerCase() == 'suspended' || status.toLowerCase() == 'banned';
+
   factory ManagedUser.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDt(dynamic val) {
+      if (val == null) return null;
+      if (val is DateTime) return val;
+      return DateTime.tryParse(val.toString());
+    }
+
     return ManagedUser(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ?? '',
       fullName: json['fullName'] ?? json['full_name'] ?? '',
-      email: json['email'] ?? '',
-      role: json['role'] ?? 'STUDENT',
-      status: json['status'] ?? 'active',
-      department: json['department'],
+      email: json['email']?.toString() ?? '',
+      role: json['role']?.toString() ?? 'STUDENT',
+      status: json['status']?.toString() ?? 'active',
+      department: json['department']?.toString(),
       avatarUrl: json['avatarUrl'] ?? json['profilePhotoUrl'],
-      joinedAt: json['joinedAt'] != null
-          ? DateTime.parse(json['joinedAt'])
-          : DateTime.now(),
-      lastActive: json['lastActive'] != null
-          ? DateTime.parse(json['lastActive'])
-          : DateTime.now(),
-      postsCount: json['postsCount'] ?? 0,
-      enrollmentNumber: json['enrollmentNumber'],
-      employeeId: json['employeeId'],
-      course: json['course'],
-      branch: json['branch'],
-      year: json['year'],
-      semester: json['semester'],
-      batch: json['batch'],
-      phone: json['phone'],
-      designation: json['designation'],
+      joinedAt: parseDt(json['joinedAt']) ?? DateTime.now(),
+      lastActive: parseDt(json['lastActive']) ?? DateTime.now(),
+      postsCount: json['postsCount'] is int ? json['postsCount'] : (int.tryParse(json['postsCount']?.toString() ?? '0') ?? 0),
+      dateOfBirth: parseDt(json['dateOfBirth'] ?? json['dob']),
+      fatherName: json['fatherName']?.toString() ?? json['father_name']?.toString(),
+      fatherMobile: json['fatherMobile']?.toString() ?? json['father_mobile']?.toString(),
+      currentAddress: json['currentAddress']?.toString() ?? json['address']?.toString(),
+      enrollmentNumber: json['enrollmentNumber']?.toString() ?? json['enrollment_number']?.toString(),
+      employeeId: json['employeeId']?.toString() ?? json['employee_id']?.toString(),
+      course: json['course']?.toString(),
+      branch: json['branch']?.toString(),
+      admissionDate: parseDt(json['admissionDate'] ?? json['admission_date']),
+      registrationDate: parseDt(json['registrationDate'] ?? json['registration_date']) ?? parseDt(json['joinedAt']) ?? DateTime.now(),
+      year: json['year'] is int ? json['year'] : int.tryParse(json['year']?.toString() ?? ''),
+      semester: json['semester'] is int ? json['semester'] : int.tryParse(json['semester']?.toString() ?? ''),
+      batch: json['batch']?.toString(),
+      phone: json['phone']?.toString() ?? json['mobileNumber']?.toString(),
+      designation: json['designation']?.toString(),
       clubIds: List<String>.from(json['clubIds'] ?? []),
       teamIds: List<String>.from(json['teamIds'] ?? []),
       eventIds: List<String>.from(json['eventIds'] ?? []),
-      suspensionReason: json['suspensionReason'],
-      suspendedAt: json['suspendedAt'] != null ? DateTime.parse(json['suspendedAt']) : null,
-      suspendedBy: json['suspendedBy'],
+      suspensionReason: json['suspensionReason']?.toString(),
+      suspendedAt: parseDt(json['suspendedAt']),
+      suspendedBy: json['suspendedBy']?.toString(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'fullName': fullName,
+    'email': email,
+    'role': role,
+    'status': status,
+    'department': department,
+    'avatarUrl': avatarUrl,
+    'joinedAt': joinedAt.toIso8601String(),
+    'lastActive': lastActive.toIso8601String(),
+    'postsCount': postsCount,
+    'dateOfBirth': dateOfBirth?.toIso8601String(),
+    'fatherName': fatherName,
+    'fatherMobile': fatherMobile,
+    'currentAddress': currentAddress,
+    'enrollmentNumber': enrollmentNumber,
+    'employeeId': employeeId,
+    'course': course,
+    'branch': branch,
+    'admissionDate': admissionDate?.toIso8601String(),
+    'registrationDate': registrationDate?.toIso8601String(),
+    'year': year,
+    'semester': semester,
+    'batch': batch,
+    'phone': phone,
+    'designation': designation,
+    'clubIds': clubIds,
+    'teamIds': teamIds,
+    'eventIds': eventIds,
+    'suspensionReason': suspensionReason,
+    'suspendedAt': suspendedAt?.toIso8601String(),
+    'suspendedBy': suspendedBy,
+  };
 
   ManagedUser copyWith({
     String? fullName,
@@ -186,10 +247,16 @@ class ManagedUser {
     String? status,
     String? role,
     String? department,
+    DateTime? dateOfBirth,
+    String? fatherName,
+    String? fatherMobile,
+    String? currentAddress,
     String? enrollmentNumber,
     String? employeeId,
     String? course,
     String? branch,
+    DateTime? admissionDate,
+    DateTime? registrationDate,
     int? year,
     int? semester,
     String? batch,
@@ -213,10 +280,16 @@ class ManagedUser {
       joinedAt: joinedAt,
       lastActive: lastActive,
       postsCount: postsCount,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      fatherName: fatherName ?? this.fatherName,
+      fatherMobile: fatherMobile ?? this.fatherMobile,
+      currentAddress: currentAddress ?? this.currentAddress,
       enrollmentNumber: enrollmentNumber ?? this.enrollmentNumber,
       employeeId: employeeId ?? this.employeeId,
       course: course ?? this.course,
       branch: branch ?? this.branch,
+      admissionDate: admissionDate ?? this.admissionDate,
+      registrationDate: registrationDate ?? this.registrationDate,
       year: year ?? this.year,
       semester: semester ?? this.semester,
       batch: batch ?? this.batch,
@@ -224,17 +297,11 @@ class ManagedUser {
       designation: designation ?? this.designation,
       clubIds: clubIds ?? this.clubIds,
       teamIds: teamIds ?? this.teamIds,
-      eventIds: eventIds ?? this.eventIds,
       suspensionReason: suspensionReason ?? this.suspensionReason,
       suspendedAt: suspendedAt ?? this.suspendedAt,
       suspendedBy: suspendedBy ?? this.suspendedBy,
     );
   }
-
-  bool get isStudent => role == 'STUDENT';
-  bool get isFaculty => role == 'FACULTY';
-  bool get isActive => status == 'active';
-  bool get isSuspended => status == 'suspended';
 }
 
 class ManagedContent {

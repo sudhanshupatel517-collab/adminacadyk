@@ -136,30 +136,43 @@ class AdminUsersProvider extends ChangeNotifier {
     required String fullName,
     required String email,
     required String role,
+    DateTime? dateOfBirth,
+    String? fatherName,
+    String? fatherMobile,
+    String? currentAddress,
     String? department,
     String? enrollmentNumber,
     String? employeeId,
     String? course,
     String? branch,
+    DateTime? admissionDate,
+    DateTime? registrationDate,
     String? phone,
     String? designation,
   }) async {
     try {
+      final now = DateTime.now();
       final newUser = ManagedUser(
-        id: 'usr-${DateTime.now().millisecondsSinceEpoch}',
+        id: 'usr-${now.millisecondsSinceEpoch}',
         fullName: fullName.trim(),
         email: email.trim(),
         role: role,
         status: 'active',
+        dateOfBirth: dateOfBirth,
+        fatherName: (fatherName != null && fatherName.trim().isNotEmpty) ? fatherName.trim() : null,
+        fatherMobile: (fatherMobile != null && fatherMobile.trim().isNotEmpty) ? fatherMobile.trim() : null,
+        currentAddress: (currentAddress != null && currentAddress.trim().isNotEmpty) ? currentAddress.trim() : null,
         department: (department != null && department.trim().isNotEmpty) ? department.trim() : null,
-        enrollmentNumber: enrollmentNumber?.trim(),
-        employeeId: employeeId?.trim(),
-        course: course,
-        branch: branch,
-        phone: phone?.trim(),
-        designation: designation?.trim(),
-        joinedAt: DateTime.now(),
-        lastActive: DateTime.now(),
+        enrollmentNumber: (enrollmentNumber != null && enrollmentNumber.trim().isNotEmpty) ? enrollmentNumber.trim() : null,
+        employeeId: (employeeId != null && employeeId.trim().isNotEmpty) ? employeeId.trim() : null,
+        course: (course != null && course.trim().isNotEmpty) ? course.trim() : null,
+        branch: (branch != null && branch.trim().isNotEmpty) ? branch.trim() : null,
+        admissionDate: admissionDate,
+        registrationDate: registrationDate ?? now,
+        phone: (phone != null && phone.trim().isNotEmpty) ? phone.trim() : null,
+        designation: (designation != null && designation.trim().isNotEmpty) ? designation.trim() : null,
+        joinedAt: now,
+        lastActive: now,
         postsCount: 0,
       );
       await AdminService.addUser(newUser);
@@ -172,12 +185,25 @@ class AdminUsersProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateUser(String userId, {
+  Future<bool> updateUser(
+    String userId, {
     required String fullName,
     required String email,
     required String role,
     required String status,
+    DateTime? dateOfBirth,
+    String? fatherName,
+    String? fatherMobile,
+    String? currentAddress,
     String? department,
+    String? enrollmentNumber,
+    String? employeeId,
+    String? course,
+    String? branch,
+    DateTime? admissionDate,
+    DateTime? registrationDate,
+    String? phone,
+    String? designation,
   }) async {
     try {
       await AdminService.updateUser(
@@ -186,9 +212,24 @@ class AdminUsersProvider extends ChangeNotifier {
         email: email.trim(),
         role: role,
         status: status,
+        dateOfBirth: dateOfBirth,
+        fatherName: (fatherName != null && fatherName.trim().isNotEmpty) ? fatherName.trim() : null,
+        fatherMobile: (fatherMobile != null && fatherMobile.trim().isNotEmpty) ? fatherMobile.trim() : null,
+        currentAddress: (currentAddress != null && currentAddress.trim().isNotEmpty) ? currentAddress.trim() : null,
         department: (department != null && department.trim().isNotEmpty) ? department.trim() : null,
+        enrollmentNumber: (enrollmentNumber != null && enrollmentNumber.trim().isNotEmpty) ? enrollmentNumber.trim() : null,
+        employeeId: (employeeId != null && employeeId.trim().isNotEmpty) ? employeeId.trim() : null,
+        course: (course != null && course.trim().isNotEmpty) ? course.trim() : null,
+        branch: (branch != null && branch.trim().isNotEmpty) ? branch.trim() : null,
+        admissionDate: admissionDate,
+        registrationDate: registrationDate,
+        phone: (phone != null && phone.trim().isNotEmpty) ? phone.trim() : null,
+        designation: (designation != null && designation.trim().isNotEmpty) ? designation.trim() : null,
       );
       await loadUsers();
+      if (_selectedUser?.id == userId) {
+        await selectUser(userId);
+      }
       return true;
     } catch (e) {
       _error = 'Failed to update user: $e';

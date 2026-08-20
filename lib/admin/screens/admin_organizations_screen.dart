@@ -6,6 +6,10 @@ import '../data/admin_models.dart';
 import '../data/admin_mock_data.dart';
 import '../widgets/admin_search_bar.dart';
 import '../widgets/admin_responsive.dart';
+import '../widgets/admin_status_badge.dart';
+import '../widgets/admin_filter_chips.dart';
+import '../widgets/admin_section_header.dart';
+import '../../app/theme/app_colors.dart';
 
 class AdminOrganizationsScreen extends StatefulWidget {
   const AdminOrganizationsScreen({super.key});
@@ -14,7 +18,7 @@ class AdminOrganizationsScreen extends StatefulWidget {
 }
 
 class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
-  String _typeFilter = '';
+  String _typeFilter = 'all';
 
   @override
   void initState() {
@@ -29,11 +33,11 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<AdminOrganizationsProvider>();
     final isEditor = context.watch<AdminAuthProvider>().isEditor;
-    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final cardBg = AppColors.surfaceColor(isDark);
+    final borderColor = AppColors.border(isDark);
 
     final filtered = provider.organizations.where((o) {
-      if (_typeFilter.isEmpty) return true;
+      if (_typeFilter == 'all' || _typeFilter.isEmpty) return true;
       return o.type.toLowerCase() == _typeFilter.toLowerCase();
     }).toList();
 
@@ -42,6 +46,26 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Section Heading
+          AdminSectionHeader(
+            title: 'Clubs & Teams',
+            padding: const EdgeInsets.only(bottom: 16),
+            trailing: isEditor
+                ? ElevatedButton(
+                    onPressed: _showCreateOrgDialog,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? Colors.white : AppColors.brand,
+                      foregroundColor: isDark ? AppColors.brand : Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    child: const Text('Add Organization'),
+                  )
+                : null,
+          ),
+
           // Header Controls
           LayoutBuilder(
             builder: (context, constraints) {
@@ -49,30 +73,33 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
               if (isMobile) {
                 return Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(child: AdminSearchBar(hint: 'Search clubs & teams...', onChanged: (q) => provider.setSearch(q))),
-                        const SizedBox(width: 8),
-                        _buildCreateButton(isDark, isEditor),
-                      ],
-                    ),
+                    AdminSearchBar(hint: 'Search clubs & teams...', onChanged: (q) => provider.setSearch(q)),
                     const SizedBox(height: 12),
-                    _buildFilterChips(isDark),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: AdminFilterChips(
+                        filters: const ['all', 'club', 'team'],
+                        selected: _typeFilter,
+                        onSelected: (f) => setState(() => _typeFilter = f),
+                      ),
+                    ),
                   ],
                 );
               }
               return Row(
                 children: [
                   Expanded(child: AdminSearchBar(hint: 'Search by club name, department, or description...', onChanged: (q) => provider.setSearch(q))),
-                  const SizedBox(width: 16),
-                  _buildFilterChips(isDark),
-                  const SizedBox(width: 12),
-                  _buildCreateButton(isDark, isEditor),
+                  const SizedBox(width: 14),
+                  AdminFilterChips(
+                    filters: const ['all', 'club', 'team'],
+                    selected: _typeFilter,
+                    onSelected: (f) => setState(() => _typeFilter = f),
+                  ),
                 ],
               );
             },
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
           // Content Area
           if (provider.isLoading)
@@ -80,9 +107,9 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(60),
                 child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.text(isDark)),
                 ),
               ),
             )
@@ -92,19 +119,13 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
               padding: const EdgeInsets.all(60),
               decoration: BoxDecoration(
                 color: cardBg,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: borderColor, width: 1),
               ),
               child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.groups_outlined, size: 36, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No clubs or teams match the selected filter.',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                    ),
-                  ],
+                child: Text(
+                  'No clubs or teams match the selected filter.',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSec(isDark)),
                 ),
               ),
             )
@@ -122,88 +143,25 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
     );
   }
 
-  Widget _buildCreateButton(bool isDark, bool isEditor) {
-    if (!isEditor) return const SizedBox.shrink();
-    return ElevatedButton.icon(
-      onPressed: () => _showCreateOrgDialog(),
-      icon: const Icon(Icons.add_rounded, size: 16),
-      label: const Text('Add Organization'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
-        foregroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-
-  Widget _buildFilterChips(bool isDark) {
-    final filters = [
-      {'key': '', 'label': 'All Organizations'},
-      {'key': 'club', 'label': 'Clubs'},
-      {'key': 'team', 'label': 'Teams'},
-    ];
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: filters.map((f) {
-        final isActive = _typeFilter == f['key'];
-        return Padding(
-          padding: const EdgeInsets.only(left: 6),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(6),
-              onTap: () => setState(() => _typeFilter = f['key']!),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? (isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A))
-                      : (isDark ? const Color(0xFF0F172A) : Colors.white),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: isActive ? Colors.transparent : borderColor, width: 1),
-                ),
-                child: Text(
-                  f['label']!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                    color: isActive
-                        ? Colors.white
-                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
   Widget _buildDesktopTable(List<Organization> items, bool isDark, bool isEditor, Color cardBg, Color borderColor) {
-    final headerBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final headerText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final rowDivider = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+    final headerBg = AppColors.surfaceAlt(isDark);
+    final headerText = AppColors.textSec(isDark);
+    final rowDivider = AppColors.borderSubtle(isDark);
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
             decoration: BoxDecoration(
               color: headerBg,
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(7), topRight: Radius.circular(7)),
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(5), topRight: Radius.circular(5)),
             ),
             child: Row(
               children: [
@@ -213,15 +171,12 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                 Expanded(flex: 1, child: Center(child: Text('MEMBERS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5)))),
                 Expanded(flex: 1, child: Text('STATUS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5))),
                 if (isEditor)
-                  Expanded(flex: 2, child: Align(alignment: Alignment.centerRight, child: Text('ACTIONS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5)))),
+                  Expanded(flex: 3, child: Align(alignment: Alignment.centerRight, child: Text('ACTIONS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: headerText, letterSpacing: 0.5)))),
               ],
             ),
           ),
           Container(height: 1, color: borderColor),
           ...items.map((org) {
-            final isClub = org.isClub;
-            final isActive = org.isActive;
-
             return Column(
               children: [
                 Material(
@@ -229,7 +184,7 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                   child: InkWell(
                     onTap: () => _showOrgDetailDialog(org),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                       child: Row(
                         children: [
                           Expanded(
@@ -237,12 +192,11 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                             child: Row(
                               children: [
                                 CircleAvatar(
-                                  radius: 14,
-                                  backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                                  child: Icon(
-                                    isClub ? Icons.groups_outlined : Icons.people_outline_rounded,
-                                    size: 15,
-                                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                                  radius: 13,
+                                  backgroundColor: AppColors.surfaceAlt(isDark),
+                                  child: Text(
+                                    org.name.isNotEmpty ? org.name[0].toUpperCase() : 'O',
+                                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.text(isDark)),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
@@ -250,9 +204,9 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                                   child: Text(
                                     org.name,
                                     style: TextStyle(
-                                      fontSize: 13.5,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                      color: AppColors.text(isDark),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -264,20 +218,12 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                             flex: 1,
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: borderColor, width: 1),
-                                ),
-                                child: Text(
-                                  org.type.toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
-                                  ),
+                              child: Text(
+                                org.type.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textSec(isDark),
                                 ),
                               ),
                             ),
@@ -287,8 +233,8 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                             child: Text(
                               org.department ?? 'Institution-wide',
                               style: TextStyle(
-                                fontSize: 12.5,
-                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                fontSize: 12,
+                                color: AppColors.textSec(isDark),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -299,9 +245,9 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                               child: Text(
                                 '${org.memberIds.length}',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                                  color: AppColors.text(isDark),
                                 ),
                               ),
                             ),
@@ -310,61 +256,35 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                             flex: 1,
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: isActive
-                                      ? (isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4))
-                                      : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
-                                    color: isActive
-                                        ? (isDark ? const Color(0xFF16A34A).withValues(alpha: 0.3) : const Color(0xFFBBF7D0))
-                                        : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  org.status.toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: isActive
-                                        ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))
-                                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                                  ),
-                                ),
-                              ),
+                              child: AdminStatusBadge(status: org.status),
                             ),
                           ),
                           if (isEditor)
                             Expanded(
-                              flex: 2,
+                              flex: 3,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  _buildActionBtn(
-                                    isDark: isDark,
-                                    icon: Icons.edit_outlined,
-                                    label: 'Edit Organization',
+                                  _buildTextActionBtn(
+                                    label: 'Edit',
                                     onTap: () => _showEditOrgDialog(org),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  _buildActionBtn(
                                     isDark: isDark,
-                                    icon: Icons.person_add_outlined,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  _buildTextActionBtn(
                                     label: 'Add Member',
                                     onTap: () => _showAddMemberDialog(org),
+                                    isDark: isDark,
                                   ),
-                                  const SizedBox(width: 4),
-                                  if (org.isActive)
-                                    _buildActionBtn(
-                                      isDark: isDark,
-                                      icon: Icons.archive_outlined,
-                                      label: 'Archive Organization',
+                                  if (org.isActive) ...[
+                                    const SizedBox(width: 6),
+                                    _buildTextActionBtn(
+                                      label: 'Archive',
                                       onTap: () => context.read<AdminOrganizationsProvider>().archiveOrganization(org.id),
                                       isDanger: true,
+                                      isDark: isDark,
                                     ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -383,19 +303,19 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
   }
 
   Widget _buildMobileCards(List<Organization> items, bool isDark, bool isEditor) {
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor = AppColors.border(isDark);
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final org = items[index];
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            color: AppColors.surfaceColor(isDark),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: borderColor, width: 1),
           ),
           child: Column(
@@ -404,44 +324,43 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 16,
-                    backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                    child: Icon(org.isClub ? Icons.groups_outlined : Icons.people_outline_rounded, size: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    radius: 14,
+                    backgroundColor: AppColors.surfaceAlt(isDark),
+                    child: Text(org.name.isNotEmpty ? org.name[0].toUpperCase() : 'O', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.text(isDark))),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(org.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                        Text('${org.type.toUpperCase()} · ${org.memberIds.length} members', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                        Text(org.name, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.text(isDark))),
+                        Text('${org.type.toUpperCase()} · ${org.memberIds.length} members', style: TextStyle(fontSize: 11.5, color: AppColors.textMut(isDark))),
                       ],
                     ),
                   ),
+                  AdminStatusBadge(status: org.status),
                 ],
               ),
               if (org.description != null && org.description!.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
                   org.description!,
-                  style: TextStyle(fontSize: 12.5, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
+                  style: TextStyle(fontSize: 12, color: AppColors.textSec(isDark)),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
               if (isEditor) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () => _showOrgDetailDialog(org),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
-                      side: BorderSide(color: borderColor),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                     ),
-                    child: const Text('View Membership Roster', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    child: const Text('View Membership Roster', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
                   ),
                 ),
               ],
@@ -452,32 +371,33 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
     );
   }
 
-  Widget _buildActionBtn({
-    required bool isDark,
-    required IconData icon,
+  Widget _buildTextActionBtn({
     required String label,
     required VoidCallback onTap,
+    required bool isDark,
     bool isDanger = false,
   }) {
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-    final color = isDanger
-        ? const Color(0xFFDC2626)
-        : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569));
+    final borderColor = AppColors.border(isDark);
+    final textColor = isDanger ? AppColors.error : AppColors.textSec(isDark);
 
-    return Tooltip(
-      message: label,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(4),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: borderColor, width: 1),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(3),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: borderColor, width: 1),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: textColor,
             ),
-            child: Icon(icon, size: 15, color: color),
           ),
         ),
       ),
@@ -489,17 +409,17 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
     final descCtrl = TextEditingController();
     String type = 'club';
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor = AppColors.border(isDark);
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: borderColor, width: 1)),
+          backgroundColor: AppColors.surfaceColor(isDark),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: borderColor, width: 1)),
           title: Text(
             'Create Organization',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.text(isDark)),
           ),
           content: SizedBox(
             width: 420,
@@ -533,9 +453,14 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
             ),
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: borderColor),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
+              child: Text('Cancel', style: TextStyle(color: AppColors.textSec(isDark), fontSize: 12.5, fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -548,13 +473,13 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                 Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
-                foregroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                backgroundColor: isDark ? Colors.white : AppColors.brand,
+                foregroundColor: isDark ? AppColors.brand : Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('Create', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              child: const Text('Create', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
             ),
           ],
         ),
@@ -566,16 +491,16 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
     final nameCtrl = TextEditingController(text: org.name);
     final descCtrl = TextEditingController(text: org.description ?? '');
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor = AppColors.border(isDark);
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: borderColor, width: 1)),
+        backgroundColor: AppColors.surfaceColor(isDark),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: borderColor, width: 1)),
         title: Text(
           'Edit Organization',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.text(isDark)),
         ),
         content: SizedBox(
           width: 420,
@@ -589,9 +514,14 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
           ),
         ),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13)),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: borderColor),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            ),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textSec(isDark), fontSize: 12.5, fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -603,13 +533,13 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
-              foregroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+              backgroundColor: isDark ? Colors.white : AppColors.brand,
+              foregroundColor: isDark ? AppColors.brand : Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
           ),
         ],
       ),
@@ -618,23 +548,23 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
 
   void _showAddMemberDialog(Organization org) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor = AppColors.border(isDark);
     final availableUsers = AdminMockData.users.where((u) => !org.memberIds.contains(u.id) && u.isActive).toList();
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: borderColor, width: 1)),
+        backgroundColor: AppColors.surfaceColor(isDark),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: borderColor, width: 1)),
         title: Text(
           'Add Member to ${org.name}',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.text(isDark)),
         ),
         content: SizedBox(
           width: 420,
           height: 320,
           child: availableUsers.isEmpty
-              ? Center(child: Text('All eligible users are currently members.', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13)))
+              ? Center(child: Text('All eligible users are currently members.', style: TextStyle(color: AppColors.textMut(isDark), fontSize: 13)))
               : ListView.separated(
                   itemCount: availableUsers.length,
                   separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
@@ -643,14 +573,14 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                     return ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                       leading: CircleAvatar(
-                        radius: 14,
-                        backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                        child: Text(user.fullName[0], style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                        radius: 13,
+                        backgroundColor: AppColors.surfaceAlt(isDark),
+                        child: Text(user.fullName[0], style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.text(isDark))),
                       ),
-                      title: Text(user.fullName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                      subtitle: Text(user.enrollmentNumber ?? user.employeeId ?? user.email, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF16A34A), size: 18),
+                      title: Text(user.fullName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text(isDark))),
+                      subtitle: Text(user.enrollmentNumber ?? user.employeeId ?? user.email, style: TextStyle(fontSize: 11, color: AppColors.textMut(isDark))),
+                      trailing: TextButton(
+                        child: const Text('Add', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
                         onPressed: () {
                           context.read<AdminOrganizationsProvider>().addMember(org.id, user.id);
                           Navigator.pop(ctx);
@@ -661,9 +591,14 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                 ),
         ),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Close', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13)),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: borderColor),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            ),
+            child: Text('Close', style: TextStyle(color: AppColors.textSec(isDark), fontSize: 12.5, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -672,17 +607,17 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
 
   void _showOrgDetailDialog(Organization org) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor = AppColors.border(isDark);
     final members = AdminMockData.users.where((u) => org.memberIds.contains(u.id)).toList();
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: borderColor, width: 1)),
+        backgroundColor: AppColors.surfaceColor(isDark),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: borderColor, width: 1)),
         title: Text(
           org.name,
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: AppColors.text(isDark)),
         ),
         content: SizedBox(
           width: 440,
@@ -691,17 +626,17 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (org.description != null && org.description!.isNotEmpty) ...[
-                Text(org.description!, style: TextStyle(fontSize: 12.5, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569))),
+                Text(org.description!, style: TextStyle(fontSize: 12.5, color: AppColors.textSec(isDark))),
                 const SizedBox(height: 14),
               ],
               Text(
                 'Members (${members.length})',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text(isDark)),
               ),
               const SizedBox(height: 8),
               Expanded(
                 child: members.isEmpty
-                    ? Center(child: Text('No members currently assigned.', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13)))
+                    ? Center(child: Text('No members currently assigned.', style: TextStyle(color: AppColors.textMut(isDark), fontSize: 13)))
                     : ListView.separated(
                         itemCount: members.length,
                         separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
@@ -710,14 +645,14 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
                           return ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                             leading: CircleAvatar(
-                              radius: 14,
-                              backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                              child: Text(user.fullName[0], style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                              radius: 13,
+                              backgroundColor: AppColors.surfaceAlt(isDark),
+                              child: Text(user.fullName[0], style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.text(isDark))),
                             ),
-                            title: Text(user.fullName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF0F172A))),
-                            subtitle: Text(user.enrollmentNumber ?? user.employeeId ?? user.email, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.remove_circle_outline_rounded, color: Color(0xFFDC2626), size: 16),
+                            title: Text(user.fullName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text(isDark))),
+                            subtitle: Text(user.enrollmentNumber ?? user.employeeId ?? user.email, style: TextStyle(fontSize: 11, color: AppColors.textMut(isDark))),
+                            trailing: TextButton(
+                              child: Text('Remove', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.error)),
                               onPressed: () {
                                 context.read<AdminOrganizationsProvider>().removeMember(org.id, user.id);
                                 Navigator.pop(ctx);
@@ -731,9 +666,14 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
           ),
         ),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Close', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13)),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: borderColor),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            ),
+            child: Text('Close', style: TextStyle(color: AppColors.textSec(isDark), fontSize: 12.5, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -741,19 +681,19 @@ class _AdminOrganizationsScreenState extends State<AdminOrganizationsScreen> {
   }
 
   Widget _dialogField(bool isDark, TextEditingController ctrl, String label, {int maxLines = 1, bool required = false}) {
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final borderColor = AppColors.border(isDark);
     return TextField(
       controller: ctrl,
       maxLines: maxLines,
-      style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+      style: TextStyle(fontSize: 13, color: AppColors.text(isDark)),
       decoration: InputDecoration(
         labelText: required ? '$label *' : label,
-        labelStyle: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+        labelStyle: TextStyle(fontSize: 12, color: AppColors.textMut(isDark)),
         filled: true,
-        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: isDark ? Colors.white : const Color(0xFF0F172A), width: 1.5)),
+        fillColor: AppColors.surfaceAlt(isDark),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: borderColor)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: borderColor)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: AppColors.text(isDark), width: 1.5)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         isDense: true,
       ),

@@ -1,14 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/admin_users_provider.dart';
 import '../providers/admin_auth_provider.dart';
 import '../data/admin_models.dart';
 import '../data/admin_service.dart';
 import '../widgets/admin_responsive.dart';
+import '../widgets/admin_status_badge.dart';
+import '../widgets/admin_section_header.dart';
+import '../widgets/admin_user_form_dialog.dart';
+import '../../app/theme/app_colors.dart';
 
 class AdminUserDetailScreen extends StatelessWidget {
   final VoidCallback onBack;
   const AdminUserDetailScreen({super.key, required this.onBack});
+
+  static final DateFormat _dateFormat = DateFormat('dd MMMM yyyy');
+
+  void _openEditUserModal(BuildContext context, ManagedUser user) {
+    AdminUserFormDialog.show(
+      context,
+      initialUser: user,
+      onSave: ({
+        required fullName,
+        required email,
+        required role,
+        dateOfBirth,
+        fatherName,
+        fatherMobile,
+        currentAddress,
+        department,
+        enrollmentNumber,
+        employeeId,
+        course,
+        branch,
+        admissionDate,
+        registrationDate,
+        phone,
+        designation,
+        status,
+      }) async {
+        return await context.read<AdminUsersProvider>().updateUser(
+          user.id,
+          fullName: fullName,
+          email: email,
+          role: role,
+          status: status ?? user.status,
+          dateOfBirth: dateOfBirth,
+          fatherName: fatherName,
+          fatherMobile: fatherMobile,
+          currentAddress: currentAddress,
+          department: department,
+          enrollmentNumber: enrollmentNumber,
+          employeeId: employeeId,
+          course: course,
+          branch: branch,
+          admissionDate: admissionDate,
+          registrationDate: registrationDate,
+          phone: phone,
+          designation: designation,
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,16 +77,23 @@ class AdminUserDetailScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('No user record selected.', style: TextStyle(fontSize: 13)),
+            Text('No user record selected.', style: TextStyle(fontSize: 13, color: AppColors.textSec(isDark))),
             const SizedBox(height: 12),
-            OutlinedButton(onPressed: onBack, child: const Text('Back to User Directory')),
+            OutlinedButton(
+              onPressed: onBack,
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text('Back to Directory'),
+            ),
           ],
         ),
       );
     }
 
-    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final cardBg = AppColors.surfaceColor(isDark);
+    final borderColor = AppColors.border(isDark);
     final isUserActive = user.status == 'active';
 
     return SingleChildScrollView(
@@ -40,67 +101,75 @@ class AdminUserDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
+          // Header Navigation & Actions
           Row(
             children: [
-              OutlinedButton.icon(
+              OutlinedButton(
                 onPressed: onBack,
-                icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                label: const Text('Back to Users'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   side: BorderSide(color: borderColor),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                 ),
+                child: const Text('Back to Directory', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
               ),
               const Spacer(),
-              if (isEditor)
-                OutlinedButton.icon(
-                  icon: Icon(
-                    isUserActive ? Icons.block_outlined : Icons.check_circle_outline_rounded,
-                    size: 15,
-                  ),
-                  label: Text(isUserActive ? 'Suspend User Access' : 'Reactivate User Account'),
+              if (isEditor) ...[
+                OutlinedButton(
+                  onPressed: () => _openEditUserModal(context, user),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: isUserActive ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
-                    side: BorderSide(
-                      color: isUserActive ? const Color(0xFFFECACA) : const Color(0xFFBBF7D0),
-                    ),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    side: BorderSide(color: borderColor),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
                   ),
-                  onPressed: () => _handleStatusAction(context, user),
+                  child: Text('Edit Record', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.text(isDark))),
                 ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () => _handleStatusAction(context, user),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: isUserActive ? AppColors.error : AppColors.success,
+                    side: BorderSide(
+                      color: isUserActive
+                          ? (isDark ? AppColors.error.withValues(alpha: 0.4) : const Color(0xFFFECACA))
+                          : (isDark ? AppColors.success.withValues(alpha: 0.4) : const Color(0xFFBBF7D0)),
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
+                  child: Text(
+                    isUserActive ? 'Suspend Account' : 'Reactivate Account',
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 18),
 
-          // Overview Header Card
+          // Institutional Profile Header Banner
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: cardBg,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(color: borderColor, width: 1),
             ),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 30,
-                  backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                  radius: 24,
+                  backgroundColor: AppColors.surfaceAlt(isDark),
                   child: Text(
                     user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : 'U',
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      color: AppColors.text(isDark),
                     ),
                   ),
                 ),
-                const SizedBox(width: 18),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,45 +179,21 @@ class AdminUserDetailScreen extends StatelessWidget {
                           Text(
                             user.fullName,
                             style: TextStyle(
-                              fontSize: 17,
+                              fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: AppColors.text(isDark),
                             ),
                           ),
                           const SizedBox(width: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isUserActive
-                                  ? (isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4))
-                                  : (isDark ? const Color(0xFF0F172A) : const Color(0xFFFEF2F2)),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: isUserActive
-                                    ? (isDark ? const Color(0xFF16A34A).withValues(alpha: 0.3) : const Color(0xFFBBF7D0))
-                                    : (isDark ? const Color(0xFFDC2626).withValues(alpha: 0.3) : const Color(0xFFFECACA)),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              user.status.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: isUserActive
-                                    ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))
-                                    : (isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
-                              ),
-                            ),
-                          ),
+                          AdminStatusBadge(status: user.status),
                         ],
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 2),
                       Text(
                         user.email,
                         style: TextStyle(
                           fontSize: 12.5,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          color: AppColors.textMut(isDark),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -187,6 +232,8 @@ class AdminUserDetailScreen extends StatelessWidget {
                       flex: 3,
                       child: Column(
                         children: [
+                          _buildPersonalAndAddressCard(isDark, user, cardBg, borderColor),
+                          const SizedBox(height: 18),
                           _buildAcademicInfo(isDark, user, cardBg, borderColor),
                           const SizedBox(height: 18),
                           if (results != null) ...[
@@ -201,6 +248,8 @@ class AdminUserDetailScreen extends StatelessWidget {
                       flex: 2,
                       child: Column(
                         children: [
+                          _buildAccountAndRegistrationCard(isDark, user, cardBg, borderColor),
+                          const SizedBox(height: 18),
                           _buildOrgsCard(isDark, user, cardBg, borderColor),
                           const SizedBox(height: 18),
                           if (user.isSuspended && user.suspensionReason != null)
@@ -214,16 +263,21 @@ class AdminUserDetailScreen extends StatelessWidget {
 
               return Column(
                 children: [
+                  _buildPersonalAndAddressCard(isDark, user, cardBg, borderColor),
+                  const SizedBox(height: 18),
                   _buildAcademicInfo(isDark, user, cardBg, borderColor),
                   const SizedBox(height: 18),
                   if (results != null) ...[
                     _buildResultsCard(isDark, results, cardBg, borderColor),
                     const SizedBox(height: 18),
                   ],
-                  _buildOrgsCard(isDark, user, cardBg, borderColor),
+                  _buildAccountAndRegistrationCard(isDark, user, cardBg, borderColor),
                   const SizedBox(height: 18),
-                  if (user.isSuspended && user.suspensionReason != null)
+                  _buildOrgsCard(isDark, user, cardBg, borderColor),
+                  if (user.isSuspended && user.suspensionReason != null) ...[
+                    const SizedBox(height: 18),
                     _buildSuspensionAuditCard(isDark, user, cardBg, borderColor),
+                  ],
                 ],
               );
             },
@@ -234,11 +288,11 @@ class AdminUserDetailScreen extends StatelessWidget {
   }
 
   Widget _buildTag(bool isDark, String text) {
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor = AppColors.border(isDark);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+        color: AppColors.surfaceAlt(isDark),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: borderColor, width: 1),
       ),
@@ -247,40 +301,97 @@ class AdminUserDetailScreen extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w500,
-          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+          color: AppColors.textSec(isDark),
         ),
       ),
     );
   }
 
-  Widget _buildAcademicInfo(bool isDark, ManagedUser user, Color cardBg, Color borderColor) {
+  Widget _buildPersonalAndAddressCard(bool isDark, ManagedUser user, Color cardBg, Color borderColor) {
+    final dobStr = user.dateOfBirth != null ? _dateFormat.format(user.dateOfBirth!) : '—';
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            user.isStudent ? 'Academic & Personal Details' : 'Faculty & Department Records',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
-            ),
+          const AdminSectionHeader(
+            title: 'Personal & Residential Details',
+            padding: EdgeInsets.only(bottom: 12),
           ),
-          const SizedBox(height: 16),
-          _infoRow(isDark, 'Department', user.department ?? 'Not assigned'),
-          _infoRow(isDark, 'Course', user.course ?? '—'),
-          _infoRow(isDark, 'Branch / Specialization', user.branch ?? '—'),
-          if (user.year != null) _infoRow(isDark, 'Year / Semester', 'Year ${user.year} (Semester ${user.semester ?? 1})'),
-          if (user.batch != null) _infoRow(isDark, 'Batch', user.batch!),
-          if (user.phone != null) _infoRow(isDark, 'Contact Phone', user.phone!),
-          _infoRow(isDark, 'Registration Date', '${user.joinedAt.day}/${user.joinedAt.month}/${user.joinedAt.year}'),
-          _infoRow(isDark, 'Total Submissions / Posts', '${user.postsCount}'),
+          _infoRow(isDark, 'Full Name', user.fullName),
+          _infoRow(isDark, 'Date of Birth', dobStr),
+          _infoRow(isDark, "Father's Name", user.fatherName ?? '—'),
+          _infoRow(isDark, "Father's Mobile Number", user.fatherMobile ?? '—'),
+          _infoRow(isDark, 'Current Address', user.currentAddress ?? '—'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAcademicInfo(bool isDark, ManagedUser user, Color cardBg, Color borderColor) {
+    final admStr = user.admissionDate != null ? _dateFormat.format(user.admissionDate!) : '—';
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AdminSectionHeader(
+            title: user.isStudent ? 'Academic & Admission Records' : 'Faculty & Department Records',
+            padding: const EdgeInsets.only(bottom: 12),
+          ),
+          if (user.isStudent) ...[
+            _infoRow(isDark, 'Enrollment Number', user.enrollmentNumber ?? '—'),
+            _infoRow(isDark, 'Course Program', user.course ?? '—'),
+            _infoRow(isDark, 'Branch / Specialization', user.branch ?? '—'),
+            _infoRow(isDark, 'Department', user.department ?? 'Not assigned'),
+            _infoRow(isDark, 'Date of Admission', admStr),
+            if (user.year != null) _infoRow(isDark, 'Year / Semester', 'Year ${user.year} (Semester ${user.semester ?? 1})'),
+            if (user.batch != null) _infoRow(isDark, 'Batch Period', user.batch!),
+          ] else ...[
+            _infoRow(isDark, 'Employee ID', user.employeeId ?? '—'),
+            _infoRow(isDark, 'Academic Department', user.department ?? 'Not assigned'),
+            _infoRow(isDark, 'Faculty Designation', user.designation ?? '—'),
+            _infoRow(isDark, 'Date of Joining / Admission', admStr),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountAndRegistrationCard(bool isDark, ManagedUser user, Color cardBg, Color borderColor) {
+    final regStr = user.registrationDate != null
+        ? _dateFormat.format(user.registrationDate!)
+        : _dateFormat.format(user.joinedAt);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AdminSectionHeader(
+            title: 'Account & System Registration',
+            padding: EdgeInsets.only(bottom: 12),
+          ),
+          _infoRow(isDark, 'Official Email', user.email),
+          _infoRow(isDark, 'Contact Mobile', user.phone ?? '—'),
+          _infoRow(isDark, 'Account Status', user.status.toUpperCase()),
+          _infoRow(isDark, 'Registration Date', regStr),
+          _infoRow(isDark, 'Total Published Posts', '${user.postsCount}'),
         ],
       ),
     );
@@ -288,10 +399,10 @@ class AdminUserDetailScreen extends StatelessWidget {
 
   Widget _buildResultsCard(bool isDark, StudentResult result, Color cardBg, Color borderColor) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
@@ -302,27 +413,31 @@ class AdminUserDetailScreen extends StatelessWidget {
               Text(
                 'Academic Results & Grades',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  color: AppColors.text(isDark),
                 ),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4),
+                  color: isDark ? AppColors.surfaceAlt(isDark) : AppColors.successBg,
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                  border: Border.all(color: isDark ? AppColors.border(isDark) : const Color(0xFFBBF7D0)),
                 ),
                 child: Text(
                   'Cumulative GPA: ${result.cgpa.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF15803D)),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? const Color(0xFF4ADE80) : AppColors.successText,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           ...result.semesters.map((sem) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,7 +449,7 @@ class AdminUserDetailScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                      color: AppColors.text(isDark),
                     ),
                   ),
                 ),
@@ -349,7 +464,7 @@ class AdminUserDetailScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            color: AppColors.textMut(isDark),
                             fontFamily: 'monospace',
                           ),
                         ),
@@ -357,32 +472,32 @@ class AdminUserDetailScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             sub.name,
-                            style: TextStyle(fontSize: 12, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                            style: TextStyle(fontSize: 12, color: AppColors.text(isDark)),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Text(
                           '${sub.credits} cr',
-                          style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                          style: TextStyle(fontSize: 11, color: AppColors.textMut(isDark)),
                         ),
                         const SizedBox(width: 10),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                            color: AppColors.surfaceAlt(isDark),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(color: borderColor),
                           ),
                           child: Text(
                             sub.grade,
-                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.text(isDark)),
                           ),
                         ),
                       ],
                     ),
                   );
                 }),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
               ],
             );
           }),
@@ -396,45 +511,40 @@ class AdminUserDetailScreen extends StatelessWidget {
     final teamNames = user.teamIds.map((id) => AdminService.getOrganizationName(id) ?? id).toList();
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Club & Team Affiliations',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
-            ),
+          const AdminSectionHeader(
+            title: 'Club & Team Affiliations',
+            padding: EdgeInsets.only(bottom: 12),
           ),
-          const SizedBox(height: 14),
           Text(
             'STUDENT CLUBS',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, letterSpacing: 0.5, color: AppColors.textMut(isDark)),
           ),
           const SizedBox(height: 6),
           if (clubNames.isEmpty)
-            Text('No active club memberships', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)))
+            Text('No active club memberships', style: TextStyle(fontSize: 12, color: AppColors.textMut(isDark)))
           else
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: clubNames.map((name) => _buildTag(isDark, name)).toList(),
             ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Text(
             'PROJECT TEAMS',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, letterSpacing: 0.5, color: AppColors.textMut(isDark)),
           ),
           const SizedBox(height: 6),
           if (teamNames.isEmpty)
-            Text('No project team memberships', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)))
+            Text('No project team memberships', style: TextStyle(fontSize: 12, color: AppColors.textMut(isDark)))
           else
             Wrap(
               spacing: 6,
@@ -448,46 +558,40 @@ class AdminUserDetailScreen extends StatelessWidget {
 
   Widget _buildSuspensionAuditCard(bool isDark, ManagedUser user, Color cardBg, Color borderColor) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFFECACA), width: 1),
+        color: isDark ? AppColors.surfaceAlt(isDark) : AppColors.errorBg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: isDark ? AppColors.border(isDark) : const Color(0xFFFECACA), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFDC2626)),
-              const SizedBox(width: 6),
-              Text(
-                'Account Suspension Audit Details',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
-                ),
-              ),
-            ],
+          Text(
+            'Account Suspension Audit Details',
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFFF87171) : AppColors.errorText,
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             'Reason: ${user.suspensionReason}',
-            style: TextStyle(fontSize: 12.5, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+            style: TextStyle(fontSize: 12, color: AppColors.text(isDark)),
           ),
           if (user.suspendedBy != null) ...[
             const SizedBox(height: 4),
             Text(
               'Suspended by: ${user.suspendedBy}',
-              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              style: TextStyle(fontSize: 11.5, color: AppColors.textMut(isDark)),
             ),
           ],
           if (user.suspendedAt != null) ...[
             const SizedBox(height: 2),
             Text(
               'Effective Date: ${user.suspendedAt!.day}/${user.suspendedAt!.month}/${user.suspendedAt!.year}',
-              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              style: TextStyle(fontSize: 11.5, color: AppColors.textMut(isDark)),
             ),
           ],
         ],
@@ -496,7 +600,7 @@ class AdminUserDetailScreen extends StatelessWidget {
   }
 
   Widget _infoRow(bool isDark, String label, String value) {
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+    final borderColor = AppColors.borderSubtle(isDark);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
@@ -506,13 +610,13 @@ class AdminUserDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 180,
+            width: 170,
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                color: AppColors.textSec(isDark),
               ),
             ),
           ),
@@ -522,7 +626,7 @@ class AdminUserDetailScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                color: AppColors.text(isDark),
               ),
             ),
           ),
@@ -533,29 +637,37 @@ class AdminUserDetailScreen extends StatelessWidget {
 
   void _handleStatusAction(BuildContext context, ManagedUser user) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final borderColor = AppColors.border(isDark);
     final isSuspended = user.status == 'suspended';
 
     if (isSuspended) {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: borderColor, width: 1)),
+          backgroundColor: AppColors.surfaceColor(isDark),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: borderColor, width: 1)),
           title: Text(
             'Reactivate Account',
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              fontSize: 15,
+              color: AppColors.text(isDark),
             ),
           ),
           content: Text(
             'Reactivate access for ${user.fullName} (${user.email})? The user will immediately regain access to the portal.',
-            style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13),
+            style: TextStyle(color: AppColors.textSec(isDark), fontSize: 12.5),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13))),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: borderColor),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
+              child: Text('Cancel', style: TextStyle(color: AppColors.textSec(isDark), fontSize: 12.5, fontWeight: FontWeight.w600)),
+            ),
             ElevatedButton(
               onPressed: () {
                 final admin = context.read<AdminAuthProvider>().currentAdmin;
@@ -563,13 +675,13 @@ class AdminUserDetailScreen extends StatelessWidget {
                 Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF16A34A),
+                backgroundColor: AppColors.success,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('Reactivate', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              child: const Text('Reactivate', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
             ),
           ],
         ),
@@ -579,14 +691,14 @@ class AdminUserDetailScreen extends StatelessWidget {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: borderColor, width: 1)),
+          backgroundColor: AppColors.surfaceColor(isDark),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: borderColor, width: 1)),
           title: Text(
             'Suspend User Account',
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              fontSize: 15,
+              color: AppColors.text(isDark),
             ),
           ),
           content: Column(
@@ -595,27 +707,31 @@ class AdminUserDetailScreen extends StatelessWidget {
             children: [
               Text(
                 'Suspend access for ${user.fullName} (${user.email}). Provide an audit reason:',
-                style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13),
+                style: TextStyle(color: AppColors.textSec(isDark), fontSize: 12.5),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: reasonCtrl,
                 maxLines: 3,
-                style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                style: TextStyle(fontSize: 13, color: AppColors.text(isDark)),
                 decoration: InputDecoration(
                   hintText: 'e.g. Violation of campus guidelines...',
-                  hintStyle: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8), fontSize: 13),
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: borderColor)),
+                  hintStyle: TextStyle(color: AppColors.textMut(isDark), fontSize: 12.5),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontSize: 13))),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: borderColor),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
+              child: Text('Cancel', style: TextStyle(color: AppColors.textSec(isDark), fontSize: 12.5, fontWeight: FontWeight.w600)),
+            ),
             ElevatedButton(
               onPressed: () {
                 final reason = reasonCtrl.text.trim().isEmpty ? 'Administrative action' : reasonCtrl.text.trim();
@@ -624,13 +740,13 @@ class AdminUserDetailScreen extends StatelessWidget {
                 Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
+                backgroundColor: AppColors.error,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: const Text('Suspend Account', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              child: const Text('Suspend Account', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
             ),
           ],
         ),

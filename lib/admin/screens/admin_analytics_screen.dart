@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import '../providers/admin_dashboard_provider.dart';
 import '../widgets/admin_responsive.dart';
+import '../widgets/admin_section_header.dart';
+import '../../app/theme/app_colors.dart';
 
 class AdminAnalyticsScreen extends StatefulWidget {
   const AdminAnalyticsScreen({super.key});
@@ -18,7 +20,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
     _animation = CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<AdminDashboardProvider>();
@@ -42,9 +44,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
     if (stats == null) {
       return Center(
         child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.text(isDark)),
         ),
       );
     }
@@ -61,6 +63,12 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Page Heading
+                  const AdminSectionHeader(
+                    title: 'Institutional Analytics & Metrics',
+                    padding: EdgeInsets.only(bottom: 16),
+                  ),
+
                   // Row 1: Bar Chart + Donut Chart
                   if (isDesktop)
                     Row(
@@ -110,15 +118,15 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
   }
 
   Widget _card(bool isDark, {required Widget child}) {
-    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final cardBg = AppColors.surfaceColor(isDark);
+    final borderColor = AppColors.border(isDark);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: borderColor, width: 1),
       ),
       child: child,
@@ -127,7 +135,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
 
   // BAR CHART
   Widget _buildBarChart(bool isDark, dynamic stats) {
-    final barColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
+    final barColor = isDark ? const Color(0xFF38BDF8) : AppColors.brand;
     final data = [
       _BarData('Users', stats.totalUsers.toDouble(), barColor),
       _BarData('Active', stats.activeUsers.toDouble(), barColor),
@@ -147,22 +155,22 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
           Text(
             'Institutional Resource Distribution',
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              color: AppColors.text(isDark),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             'Relative platform resource allocation across active records',
             style: TextStyle(
               fontSize: 12,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              color: AppColors.textMut(isDark),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           SizedBox(
-            height: 260,
+            height: 240,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return Row(
@@ -170,7 +178,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
                   children: scaledData.asMap().entries.map((entry) {
                     final d = entry.value;
                     final original = data[entry.key];
-                    final barHeight = maxVal > 0 ? (d.value / maxVal) * 220 * _animation.value : 0.0;
+                    final barHeight = maxVal > 0 ? (d.value / maxVal) * 200 * _animation.value : 0.0;
                     return Expanded(
                       child: Padding(
                         padding: EdgeInsets.only(right: entry.key < scaledData.length - 1 ? 12 : 0),
@@ -182,7 +190,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                                color: AppColors.textSec(isDark),
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -199,7 +207,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
-                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                color: AppColors.textMut(isDark),
                               ),
                             ),
                           ],
@@ -219,11 +227,11 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
   // DONUT CHART
   Widget _buildDonutChart(bool isDark, dynamic stats) {
     final segments = [
-      _DonutSegment('Users', stats.totalUsers.toDouble(), const Color(0xFF0F172A)),
+      _DonutSegment('Users', stats.totalUsers.toDouble(), isDark ? Colors.white : AppColors.brand),
       _DonutSegment('Posts', stats.totalPosts.toDouble(), const Color(0xFF0284C7)),
-      _DonutSegment('Opportunities', stats.totalOpportunities.toDouble(), const Color(0xFF16A34A)),
-      _DonutSegment('Clubs', stats.totalClubs.toDouble(), const Color(0xFFD97706)),
-      _DonutSegment('Events', stats.totalEvents.toDouble(), const Color(0xFF6366F1)),
+      _DonutSegment('Opportunities', stats.totalOpportunities.toDouble(), AppColors.success),
+      _DonutSegment('Clubs', stats.totalClubs.toDouble(), AppColors.warning),
+      _DonutSegment('Events', stats.totalEvents.toDouble(), const Color(0xFF7C3AED)),
     ];
 
     return _card(
@@ -234,32 +242,32 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
           Text(
             'Entity Proportions',
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              color: AppColors.text(isDark),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             'Category ratio breakdown',
             style: TextStyle(
               fontSize: 12,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              color: AppColors.textMut(isDark),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           Center(
             child: SizedBox(
-              width: 140,
-              height: 140,
+              width: 130,
+              height: 130,
               child: CustomPaint(
                 painter: _DonutPainter(segments: segments, progress: _animation.value, isDark: isDark),
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           ...segments.map((s) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: 6),
             child: Row(
               children: [
                 Container(width: 8, height: 8, decoration: BoxDecoration(color: s.color, borderRadius: BorderRadius.circular(2))),
@@ -268,17 +276,17 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
                   child: Text(
                     s.label,
                     style: TextStyle(
-                      fontSize: 12.5,
-                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                      fontSize: 12,
+                      color: AppColors.textSec(isDark),
                     ),
                   ),
                 ),
                 Text(
                   s.value.toInt().toString(),
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    color: AppColors.text(isDark),
                   ),
                 ),
               ],
@@ -311,44 +319,44 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
                     Text(
                       'Monthly Platform Growth',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        color: AppColors.text(isDark),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       'Monthly active user enrollment volume',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        color: AppColors.textMut(isDark),
                       ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF0FDF4),
+                  color: isDark ? AppColors.surfaceAlt(isDark) : AppColors.successBg,
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                  border: Border.all(color: isDark ? AppColors.border(isDark) : const Color(0xFFBBF7D0)),
                 ),
-                child: const Text(
+                child: Text(
                   '+24.5% MoM',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF15803D)),
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF4ADE80) : AppColors.successText),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           SizedBox(
-            height: 240,
+            height: 220,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: List.generate(months.length, (i) {
-                final barHeight = maxVal > 0 ? (values[i] / maxVal) * 200 * _animation.value : 0.0;
-                final accentColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
+                final barHeight = maxVal > 0 ? (values[i] / maxVal) * 180 * _animation.value : 0.0;
+                final accentColor = isDark ? const Color(0xFF38BDF8) : AppColors.brand;
                 return Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(right: i < months.length - 1 ? 8 : 0),
@@ -360,14 +368,14 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
-                            color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                            color: AppColors.textMut(isDark),
                           ),
                         ),
                         const SizedBox(height: 4),
                         Container(
                           height: barHeight,
                           decoration: BoxDecoration(
-                            color: accentColor.withValues(alpha: 0.4 + (i / months.length) * 0.6),
+                            color: accentColor.withValues(alpha: 0.35 + (i / months.length) * 0.65),
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
                           ),
                         ),
@@ -377,7 +385,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            color: AppColors.textMut(isDark),
                           ),
                         ),
                       ],
@@ -405,19 +413,19 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
           Text(
             'Operational Indicators',
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              color: AppColors.text(isDark),
             ),
           ),
-          const SizedBox(height: 18),
-          _buildKPI(isDark, 'Active User Retention', '$retention%', stats.activeUsers / stats.totalUsers, const Color(0xFF16A34A)),
           const SizedBox(height: 16),
+          _buildKPI(isDark, 'Active User Retention', '$retention%', stats.activeUsers / stats.totalUsers, AppColors.success),
+          const SizedBox(height: 14),
           _buildKPI(isDark, 'Avg Posts per User', avgPosts, (stats.totalPosts / stats.totalUsers) / 10, const Color(0xFF0284C7)),
-          const SizedBox(height: 16),
-          _buildKPI(isDark, 'Content Moderation Rate', '${(stats.pendingReports / stats.totalPosts * 100).toStringAsFixed(2)}%', stats.pendingReports / stats.totalPosts, const Color(0xFFD97706)),
-          const SizedBox(height: 16),
-          _buildKPI(isDark, 'New Registrations Today', '+${stats.newUsersToday}', stats.newUsersToday / 50, const Color(0xFF6366F1)),
+          const SizedBox(height: 14),
+          _buildKPI(isDark, 'Content Moderation Rate', '${(stats.pendingReports / stats.totalPosts * 100).toStringAsFixed(2)}%', stats.pendingReports / stats.totalPosts, AppColors.warning),
+          const SizedBox(height: 14),
+          _buildKPI(isDark, 'New Registrations Today', '+${stats.newUsersToday}', stats.newUsersToday / 50, const Color(0xFF7C3AED)),
         ],
       ),
     );
@@ -432,20 +440,20 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> with Single
           children: [
             Text(
               label,
-              style: TextStyle(fontSize: 12.5, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              style: TextStyle(fontSize: 12, color: AppColors.textSec(isDark)),
             ),
             Text(
               value,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text(isDark)),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 5),
         ClipRRect(
           borderRadius: BorderRadius.circular(3),
           child: LinearProgressIndicator(
             value: (progress * _animation.value).clamp(0.0, 1.0),
-            backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+            backgroundColor: AppColors.surfaceAlt(isDark),
             valueColor: AlwaysStoppedAnimation(color),
             minHeight: 5,
           ),
@@ -480,7 +488,7 @@ class _DonutPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 6;
-    const strokeWidth = 20.0;
+    const strokeWidth = 18.0;
     final total = segments.fold<double>(0, (sum, s) => sum + s.value);
     if (total == 0) return;
 
@@ -507,9 +515,9 @@ class _DonutPainter extends CustomPainter {
       text: TextSpan(
         text: total.toInt().toString(),
         style: TextStyle(
-          fontSize: 18,
+          fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: isDark ? Colors.white : const Color(0xFF0F172A),
+          color: AppColors.text(isDark),
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -522,12 +530,12 @@ class _DonutPainter extends CustomPainter {
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w500,
-          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+          color: AppColors.textMut(isDark),
         ),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    labelText.paint(canvas, Offset(center.dx - labelText.width / 2, center.dy + 8));
+    labelText.paint(canvas, Offset(center.dx - labelText.width / 2, center.dy + 7));
   }
 
   @override

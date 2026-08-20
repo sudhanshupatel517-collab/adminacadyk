@@ -1,157 +1,175 @@
 import 'package:flutter/material.dart';
-import 'admin_responsive.dart';
+import '../../app/theme/app_colors.dart';
 
-/// Responsive data display: Table on desktop, Cards on mobile
-class AdminDataView<T> extends StatelessWidget {
-  final List<T> items;
-  final List<String> columns;
-  final List<String> Function(T item) rowBuilder;
-  final Widget Function(T item)? mobileCardBuilder;
-  final void Function(T item)? onTap;
+/// Clean enterprise data table without decorative icons.
+class AdminDataTableColumn {
+  final String label;
+  final int flex;
+  final TextAlign align;
+
+  const AdminDataTableColumn({
+    required this.label,
+    this.flex = 1,
+    this.align = TextAlign.left,
+  });
+}
+
+class AdminDataTable extends StatelessWidget {
+  final List<AdminDataTableColumn> columns;
+  final int itemCount;
+  final Widget Function(BuildContext context, int index) itemBuilder;
   final bool isLoading;
-  final String? emptyMessage;
-  final String? errorMessage;
+  final String? emptyTitle;
+  final String? emptySubtitle;
+  final String? error;
   final VoidCallback? onRetry;
 
-  const AdminDataView({
+  const AdminDataTable({
     super.key,
-    required this.items,
     required this.columns,
-    required this.rowBuilder,
-    this.mobileCardBuilder,
-    this.onTap,
+    required this.itemCount,
+    required this.itemBuilder,
     this.isLoading = false,
-    this.emptyMessage,
-    this.errorMessage,
+    this.emptyTitle,
+    this.emptySubtitle,
+    this.error,
     this.onRetry,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Center(child: Padding(
-        padding: EdgeInsets.all(40),
-        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-      ));
-    }
-    if (errorMessage != null) {
-      return _buildErrorState(context);
-    }
-    if (items.isEmpty) {
-      return _buildEmptyState(context);
-    }
-
-    final isMobile = AdminBreakpoints.isMobile(context);
-    if (isMobile && mobileCardBuilder != null) {
-      return _buildMobileCards(context);
-    }
-    return _buildDesktopTable(context);
-  }
-
-  Widget _buildDesktopTable(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE5E7EB);
-    final headerBg = isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF9FAFB);
+    final borderColor = AppColors.border(isDark);
+    final headerBg = AppColors.surfaceAlt(isDark);
+    final headerText = AppColors.textSec(isDark);
+    final rowDivider = AppColors.borderSubtle(isDark);
 
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.surfaceColor(isDark),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: borderColor, width: 1),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width * 0.5),
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(headerBg),
-              headingRowHeight: 44,
-              dataRowMinHeight: 52,
-              dataRowMaxHeight: 60,
-              horizontalMargin: 16,
-              columnSpacing: 24,
-              columns: columns.map((col) => DataColumn(
-                label: Text(col, style: TextStyle(
-                  fontWeight: FontWeight.w700, fontSize: 12,
-                  color: isDark ? Colors.white54 : Colors.black54,
-                )),
-              )).toList(),
-              rows: items.map((item) {
-                final values = rowBuilder(item);
-                return DataRow(
-                  cells: values.map((val) => DataCell(
-                    Text(val, style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ), overflow: TextOverflow.ellipsis),
-                    onTap: onTap != null ? () => onTap!(item) : null,
-                  )).toList(),
+      child: Column(
+        children: [
+          // Header Row
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+            decoration: BoxDecoration(
+              color: headerBg,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(5),
+                topRight: Radius.circular(5),
+              ),
+            ),
+            child: Row(
+              children: columns.map((col) {
+                return Expanded(
+                  flex: col.flex,
+                  child: Text(
+                    col.label.toUpperCase(),
+                    textAlign: col.align,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: headerText,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 );
               }).toList(),
             ),
           ),
-        ),
-      ),
-    );
-  }
+          Container(height: 1, color: borderColor),
 
-  Widget _buildMobileCards(BuildContext context) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) => mobileCardBuilder!(items[index]),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.inbox_outlined, size: 48, color: isDark ? Colors.white24 : Colors.black26),
-            const SizedBox(height: 12),
-            Text(emptyMessage ?? 'No data found.', style: TextStyle(
-              color: isDark ? Colors.white54 : Colors.black54, fontSize: 14,
-            )),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: isDark ? Colors.white24 : Colors.black26),
-            const SizedBox(height: 12),
-            Text(errorMessage ?? 'An error occurred.', textAlign: TextAlign.center,
-              style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 14)),
-            if (onRetry != null) ...[
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Retry'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: isDark ? Colors.white : Colors.black,
-                  side: BorderSide(color: isDark ? Colors.white24 : Colors.black26),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          // Body States
+          if (isLoading)
+            Padding(
+              padding: const EdgeInsets.all(48),
+              child: Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.text(isDark),
+                  ),
                 ),
               ),
-            ],
-          ],
-        ),
+            )
+          else if (error != null)
+            Padding(
+              padding: const EdgeInsets.all(40),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Failed to load table data',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.text(isDark),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      error!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSec(isDark),
+                      ),
+                    ),
+                    if (onRetry != null) ...[
+                      const SizedBox(height: 14),
+                      OutlinedButton(
+                        onPressed: onRetry,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            )
+          else if (itemCount == 0)
+            Padding(
+              padding: const EdgeInsets.all(48),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      emptyTitle ?? 'No records found',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.text(isDark),
+                      ),
+                    ),
+                    if (emptySubtitle != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        emptySubtitle!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSec(isDark),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: itemCount,
+              separatorBuilder: (_, __) => Container(height: 1, color: rowDivider),
+              itemBuilder: itemBuilder,
+            ),
+        ],
       ),
     );
   }

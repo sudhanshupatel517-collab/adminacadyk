@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_search_bar.dart';
+import '../widgets/admin_section_header.dart';
+import '../../app/theme/app_colors.dart';
 
 class AdminMediaScreen extends StatefulWidget {
   const AdminMediaScreen({super.key});
@@ -21,41 +23,38 @@ class _AdminMediaScreenState extends State<AdminMediaScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE5E7EB);
+    final borderColor = AppColors.border(isDark);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: AdminSearchBar(
-                  hint: 'Search media assets...',
-                  onChanged: (q) {},
-                ),
+          AdminSectionHeader(
+            title: 'Media Asset Repository',
+            padding: const EdgeInsets.only(bottom: 16),
+            trailing: ElevatedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Asset management is synchronized with local assets directory.')),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? Colors.white : AppColors.brand,
+                foregroundColor: isDark ? AppColors.brand : Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Asset management is synchronized with local assets directory.')),
-                  );
-                },
-                icon: const Icon(Icons.upload_file, size: 18),
-                label: const Text('Upload Asset'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? Colors.white : Colors.black,
-                  foregroundColor: isDark ? Colors.black : Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                ),
-              ),
-            ],
+              child: const Text('Upload Asset'),
+            ),
           ),
-          const SizedBox(height: 24),
+          AdminSearchBar(
+            hint: 'Search media assets...',
+            onChanged: (q) {},
+          ),
+          const SizedBox(height: 20),
           LayoutBuilder(
             builder: (context, constraints) {
               int cols = constraints.maxWidth > 900 ? 3 : (constraints.maxWidth > 550 ? 2 : 1);
@@ -64,17 +63,17 @@ class _AdminMediaScreenState extends State<AdminMediaScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1.2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 1.25,
                 ),
                 itemCount: _mediaItems.length,
                 itemBuilder: (context, index) {
                   final item = _mediaItems[index];
                   return Container(
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF111111) : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.surfaceColor(isDark),
+                      borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: borderColor),
                     ),
                     clipBehavior: Clip.antiAlias,
@@ -83,33 +82,34 @@ class _AdminMediaScreenState extends State<AdminMediaScreen> {
                       children: [
                         Expanded(
                           child: Container(
-                            color: isDark ? Colors.black : const Color(0xFFF3F4F6),
+                            color: AppColors.surfaceAlt(isDark),
                             child: Center(
                               child: Image.asset(
                                 item['path']!,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Icon(Icons.image_outlined, size: 48, color: isDark ? Colors.white24 : Colors.black26),
+                                errorBuilder: (_, __, ___) => Text('Asset Not Found', style: TextStyle(color: AppColors.textMut(isDark), fontSize: 12)),
                               ),
                             ),
                           ),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(item['name']!, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: isDark ? Colors.white : Colors.black), overflow: TextOverflow.ellipsis),
-                                    const SizedBox(height: 2),
-                                    Text('${item['type']} \u2022 ${item['size']}', style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black45)),
-                                  ],
+                              Text(
+                                item['name']!,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12.5,
+                                  color: AppColors.text(isDark),
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              IconButton(
-                                icon: Icon(Icons.more_vert, size: 18, color: isDark ? Colors.white54 : Colors.black45),
-                                onPressed: () {},
+                              const SizedBox(height: 2),
+                              Text(
+                                '${item['type']} · ${item['size']}',
+                                style: TextStyle(fontSize: 11, color: AppColors.textMut(isDark)),
                               ),
                             ],
                           ),

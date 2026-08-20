@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/admin_settings_provider.dart';
 import '../providers/admin_auth_provider.dart';
 import '../widgets/admin_form_field.dart';
+import '../widgets/admin_section_header.dart';
+import '../../app/theme/app_colors.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -30,9 +32,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     if (provider.isLoading) {
       return Center(
         child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.text(isDark)),
         ),
       );
     }
@@ -42,11 +44,17 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Section Heading
+          const AdminSectionHeader(
+            title: 'Institutional Settings & Controls',
+            padding: EdgeInsets.only(bottom: 16),
+          ),
+
           // Banners
           if (provider.successMessage != null)
-            _buildBanner(provider.successMessage!, const Color(0xFF16A34A), isDark),
+            _buildBanner(provider.successMessage!, AppColors.success, isDark),
           if (provider.error != null)
-            _buildBanner(provider.error!, const Color(0xFFDC2626), isDark),
+            _buildBanner(provider.error!, AppColors.error, isDark),
 
           // App Settings Section
           _buildSection('Platform Metadata', isDark, [
@@ -123,15 +131,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 
   Widget _buildSection(String title, bool isDark, List<Widget> children) {
-    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final cardBg = AppColors.surfaceColor(isDark);
+    final borderColor = AppColors.border(isDark);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
@@ -140,9 +148,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           Text(
             title,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              color: AppColors.text(isDark),
             ),
           ),
           const SizedBox(height: 16),
@@ -153,7 +161,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 
   Widget _buildInfoRow(String label, String value, bool isDark) {
-    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+    final borderColor = AppColors.borderSubtle(isDark);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
@@ -165,17 +173,17 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: FontWeight.w500,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              color: AppColors.textSec(isDark),
             ),
           ),
           Text(
             value,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              color: AppColors.text(isDark),
             ),
           ),
         ],
@@ -192,17 +200,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline_rounded, size: 16, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: color),
-            ),
-          ),
-        ],
+      child: Text(
+        message,
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color),
       ),
     );
   }

@@ -264,11 +264,18 @@ class AdminService {
         'role': user.role,
         'status': user.status,
         'department': user.department,
+        'dateOfBirth': user.dateOfBirth?.toIso8601String(),
+        'fatherName': user.fatherName,
+        'fatherMobile': user.fatherMobile,
+        'currentAddress': user.currentAddress,
         'enrollmentNumber': user.enrollmentNumber,
         'employeeId': user.employeeId,
         'course': user.course,
         'branch': user.branch,
+        'admissionDate': user.admissionDate?.toIso8601String(),
+        'registrationDate': user.registrationDate?.toIso8601String(),
         'phone': user.phone,
+        'designation': user.designation,
       });
     } catch (_) {}
 
@@ -276,7 +283,26 @@ class AdminService {
     _logActivity('User added', 'Sudhanshu Patel', user.email, 'user', targetId: user.id);
   }
 
-  static Future<void> updateUser(String userId, {String? fullName, String? email, String? role, String? status, String? department, String? course, String? branch, String? phone, String? designation}) async {
+  static Future<void> updateUser(
+    String userId, {
+    String? fullName,
+    String? email,
+    String? role,
+    String? status,
+    String? department,
+    DateTime? dateOfBirth,
+    String? fatherName,
+    String? fatherMobile,
+    String? currentAddress,
+    String? enrollmentNumber,
+    String? employeeId,
+    String? course,
+    String? branch,
+    DateTime? admissionDate,
+    DateTime? registrationDate,
+    String? phone,
+    String? designation,
+  }) async {
     try {
       await ApiClient.put('/admin/users/$userId', data: {
         if (fullName != null) 'fullName': fullName,
@@ -284,8 +310,16 @@ class AdminService {
         if (role != null) 'role': role,
         if (status != null) 'status': status,
         if (department != null) 'department': department,
+        if (dateOfBirth != null) 'dateOfBirth': dateOfBirth.toIso8601String(),
+        if (fatherName != null) 'fatherName': fatherName,
+        if (fatherMobile != null) 'fatherMobile': fatherMobile,
+        if (currentAddress != null) 'currentAddress': currentAddress,
+        if (enrollmentNumber != null) 'enrollmentNumber': enrollmentNumber,
+        if (employeeId != null) 'employeeId': employeeId,
         if (course != null) 'course': course,
         if (branch != null) 'branch': branch,
+        if (admissionDate != null) 'admissionDate': admissionDate.toIso8601String(),
+        if (registrationDate != null) 'registrationDate': registrationDate.toIso8601String(),
         if (phone != null) 'phone': phone,
         if (designation != null) 'designation': designation,
       });
@@ -295,9 +329,23 @@ class AdminService {
     if (idx != -1) {
       final u = AdminMockData.users[idx];
       AdminMockData.users[idx] = u.copyWith(
-        fullName: fullName, email: email, role: role,
-        status: status, department: department,
-        course: course, branch: branch, phone: phone, designation: designation,
+        fullName: fullName,
+        email: email,
+        role: role,
+        status: status,
+        department: department,
+        dateOfBirth: dateOfBirth,
+        fatherName: fatherName,
+        fatherMobile: fatherMobile,
+        currentAddress: currentAddress,
+        enrollmentNumber: enrollmentNumber,
+        employeeId: employeeId,
+        course: course,
+        branch: branch,
+        admissionDate: admissionDate,
+        registrationDate: registrationDate,
+        phone: phone,
+        designation: designation,
       );
       _logActivity('User updated', 'Sudhanshu Patel', AdminMockData.users[idx].email, 'user', targetId: userId);
     }
