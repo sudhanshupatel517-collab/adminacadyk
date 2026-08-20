@@ -6,17 +6,27 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Acadyk Admin Console">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 
   <link rel="icon" type="image/png" href="favicon.png"/>
   <title>Acadyk Admin Console</title>
   <link rel="manifest" href="manifest.json">
   <script>
-    // Clean old PWA service workers if cached from user app
+    // Forcefully clean old PWA service workers and CacheStorage
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for (let registration of registrations) {
           registration.unregister();
         }
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(function(keys) {
+        keys.forEach(function(key) {
+          caches.delete(key);
+        });
       });
     }
   </script>
